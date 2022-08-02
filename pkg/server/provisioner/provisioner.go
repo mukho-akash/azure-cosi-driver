@@ -66,9 +66,9 @@ func NewProvisionerServer(
 	}, nil
 }
 
-func (pr *provisioner) ProvisionerCreateBucket(
+func (pr *provisioner) DriverCreateBucket(
 	ctx context.Context,
-	req *spec.ProvisionerCreateBucketRequest) (*spec.ProvisionerCreateBucketResponse, error) {
+	req *spec.DriverCreateBucketRequest) (*spec.DriverCreateBucketResponse, error) {
 	protocol := req.GetProtocol()
 	if protocol == nil {
 		return nil, status.Error(codes.InvalidArgument, "Protocol is nil")
@@ -120,18 +120,18 @@ func (pr *provisioner) ProvisionerCreateBucket(
 	pr.bucketIdToNameMap[bucketId] = bucketName
 	pr.bucketsLock.RUnlock()
 
-	klog.Infof("ProvisionerCreateBucket :: Bucket id :: %s", bucketId)
+	klog.Infof("DriverCreateBucket :: Bucket id :: %s", bucketId)
 
-	return &spec.ProvisionerCreateBucketResponse{
+	return &spec.DriverCreateBucketResponse{
 		BucketId: bucketId,
 	}, nil
 }
 
-func (pr *provisioner) ProvisionerDeleteBucket(
+func (pr *provisioner) DriverDeleteBucket(
 	ctx context.Context,
-	req *spec.ProvisionerDeleteBucketRequest) (*spec.ProvisionerDeleteBucketResponse, error) {
+	req *spec.DriverDeleteBucketRequest) (*spec.DriverDeleteBucketResponse, error) {
 	bucketId := req.GetBucketId()
-	klog.Infof("ProvisionerDeleteBucket :: Bucket id :: %s", bucketId)
+	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketId)
 	err := azureutils.DeleteBucket(ctx, bucketId, pr.cloud)
 
 	if err != nil {
@@ -146,17 +146,17 @@ func (pr *provisioner) ProvisionerDeleteBucket(
 		pr.bucketsLock.RUnlock()
 	}
 
-	return &spec.ProvisionerDeleteBucketResponse{}, nil
+	return &spec.DriverDeleteBucketResponse{}, nil
 }
 
-func (pr *provisioner) ProvisionerGrantBucketAccess(
+func (pr *provisioner) DriverGrantBucketAccess(
 	ctx context.Context,
-	req *spec.ProvisionerGrantBucketAccessRequest) (*spec.ProvisionerGrantBucketAccessResponse, error) {
-	return &spec.ProvisionerGrantBucketAccessResponse{}, nil
+	req *spec.DriverGrantBucketAccessRequest) (*spec.ProvisionerGrantBucketAccessResponse, error) {
+	return &spec.DriverGrantBucketAccessResponse{}, nil
 }
 
-func (pr *provisioner) ProvisionerRevokeBucketAccess(
+func (pr *provisioner) DriverRevokeBucketAccess(
 	ctx context.Context,
-	req *spec.ProvisionerRevokeBucketAccessRequest) (*spec.ProvisionerRevokeBucketAccessResponse, error) {
-	return &spec.ProvisionerRevokeBucketAccessResponse{}, nil
+	req *spec.DriverRevokeBucketAccessRequest) (*spec.ProvisionerRevokeBucketAccessResponse, error) {
+	return &spec.DriverRevokeBucketAccessResponse{}, nil
 }
