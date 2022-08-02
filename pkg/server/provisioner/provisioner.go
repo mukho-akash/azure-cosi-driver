@@ -151,12 +151,18 @@ func (pr *provisioner) DriverDeleteBucket(
 
 func (pr *provisioner) DriverGrantBucketAccess(
 	ctx context.Context,
-	req *spec.DriverGrantBucketAccessRequest) (*spec.ProvisionerGrantBucketAccessResponse, error) {
+	req *spec.DriverGrantBucketAccessRequest) (*spec.DriverGrantBucketAccessResponse, error) {
 	return &spec.DriverGrantBucketAccessResponse{}, nil
 }
 
 func (pr *provisioner) DriverRevokeBucketAccess(
 	ctx context.Context,
-	req *spec.DriverRevokeBucketAccessRequest) (*spec.ProvisionerRevokeBucketAccessResponse, error) {
+	req *spec.DriverRevokeBucketAccessRequest) (*spec.DriverRevokeBucketAccessResponse, error) {
 	return &spec.DriverRevokeBucketAccessResponse{}, nil
+}
+
+func (pr *provisioner) DriverGetInfo(
+	ctx context.Context,
+	req *spec.DriverGetInfoRequest) (*spec.DriverGetInfoResponse, error) {
+	return &spec.DriverGetInfoRequest{}, nil
 }
