@@ -160,9 +160,3 @@ func (pr *provisioner) DriverRevokeBucketAccess(
 	req *spec.DriverRevokeBucketAccessRequest) (*spec.DriverRevokeBucketAccessResponse, error) {
 	return &spec.DriverRevokeBucketAccessResponse{}, nil
 }
-
-func (pr *provisioner) DriverGetInfo(
-	ctx context.Context,
-	req *spec.DriverGetInfoRequest) (*spec.DriverGetInfoResponse, error) {
-	return &spec.DriverGetInfoRequest{}, nil
-}
