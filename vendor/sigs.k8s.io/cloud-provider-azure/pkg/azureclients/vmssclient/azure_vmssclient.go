@@ -18,12 +18,11 @@ package vmssclient
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2020-12-01/compute"
+	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2021-07-01/compute"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -38,6 +37,8 @@ import (
 )
 
 var _ Interface = &Client{}
+
+const vmssResourceType = "Microsoft.Compute/virtualMachineScaleSets"
 
 // Client implements VMSS client Interface.
 type Client struct {
@@ -62,7 +63,7 @@ func New(config *azclients.ClientConfig) *Client {
 	if strings.EqualFold(config.CloudName, AzureStackCloudName) && !config.DisableAzureStackCloud {
 		apiVersion = AzureStackCloudAPIVersion
 	}
-	armClient := armclient.New(authorizer, baseURI, config.UserAgent, apiVersion, config.Location, config.Backoff)
+	armClient := armclient.New(authorizer, *config, baseURI, apiVersion)
 	rateLimiterReader, rateLimiterWriter := azclients.NewRateLimiter(config.RateLimitConfig)
 
 	if azclients.RateLimitEnabled(config.RateLimitConfig) {
@@ -121,12 +122,12 @@ func (c *Client) getVMSS(ctx context.Context, resourceGroupName string, VMScaleS
 	resourceID := armclient.GetResourceID(
 		c.subscriptionID,
 		resourceGroupName,
-		"Microsoft.Compute/virtualMachineScaleSets",
+		vmssResourceType,
 		VMScaleSetName,
 	)
 	result := compute.VirtualMachineScaleSet{}
 
-	response, rerr := c.armClient.GetResource(ctx, resourceID, "")
+	response, rerr := c.armClient.GetResource(ctx, resourceID)
 	defer c.armClient.CloseResponse(ctx, response)
 	if rerr != nil {
 		klog.V(5).Infof("Received error in %s: resourceID: %s, error: %s", "vmss.get.request", resourceID, rerr.Error())
@@ -179,14 +180,16 @@ func (c *Client) List(ctx context.Context, resourceGroupName string) ([]compute.
 
 // listVMSS gets a list of VirtualMachineScaleSets in the resource group.
 func (c *Client) listVMSS(ctx context.Context, resourceGroupName string) ([]compute.VirtualMachineScaleSet, *retry.Error) {
-	resourceID := fmt.Sprintf("/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Compute/virtualMachineScaleSets",
-		autorest.Encode("path", c.subscriptionID),
-		autorest.Encode("path", resourceGroupName))
+	resourceID := armclient.GetResourceListID(
+		c.subscriptionID,
+		resourceGroupName,
+		vmssResourceType,
+	)
 	result := make([]compute.VirtualMachineScaleSet, 0)
 	page := &VirtualMachineScaleSetListResultPage{}
 	page.fn = c.listNextResults
 
-	resp, rerr := c.armClient.GetResource(ctx, resourceID, "")
+	resp, rerr := c.armClient.GetResource(ctx, resourceID)
 	defer c.armClient.CloseResponse(ctx, resp)
 	if rerr != nil {
 		klog.V(5).Infof("Received error in %s: resourceID: %s, error: %s", "vmss.list.request", resourceID, rerr.Error())
@@ -268,7 +271,7 @@ func (c *Client) CreateOrUpdateAsync(ctx context.Context, resourceGroupName stri
 	resourceID := armclient.GetResourceID(
 		c.subscriptionID,
 		resourceGroupName,
-		"Microsoft.Compute/virtualMachineScaleSets",
+		vmssResourceType,
 		VMScaleSetName,
 	)
 
@@ -319,7 +322,7 @@ func (c *Client) createOrUpdateVMSS(ctx context.Context, resourceGroupName strin
 	resourceID := armclient.GetResourceID(
 		c.subscriptionID,
 		resourceGroupName,
-		"Microsoft.Compute/virtualMachineScaleSets",
+		vmssResourceType,
 		VMScaleSetName,
 	)
 	response, rerr := c.armClient.PutResource(ctx, resourceID, parameters)
@@ -472,7 +475,7 @@ func (c *Client) DeleteInstances(ctx context.Context, resourceGroupName string, 
 }
 
 // DeleteInstancesAsync sends the delete request to ARM client and DOEST NOT wait on the future
-func (c *Client) DeleteInstancesAsync(ctx context.Context, resourceGroupName string, vmScaleSetName string, vmInstanceIDs compute.VirtualMachineScaleSetVMInstanceRequiredIDs) (*azure.Future, *retry.Error) {
+func (c *Client) DeleteInstancesAsync(ctx context.Context, resourceGroupName string, vmScaleSetName string, vmInstanceIDs compute.VirtualMachineScaleSetVMInstanceRequiredIDs, forceDelete bool) (*azure.Future, *retry.Error) {
 	mc := metrics.NewMetricContext("vmss", "delete_instances_async", resourceGroupName, c.subscriptionID, "")
 
 	// Report errors if the client is rate limited.
@@ -491,11 +494,17 @@ func (c *Client) DeleteInstancesAsync(ctx context.Context, resourceGroupName str
 	resourceID := armclient.GetResourceID(
 		c.subscriptionID,
 		resourceGroupName,
-		"Microsoft.Compute/virtualMachineScaleSets",
+		vmssResourceType,
 		vmScaleSetName,
 	)
 
-	response, rerr := c.armClient.PostResource(ctx, resourceID, "delete", vmInstanceIDs)
+	var queryParameters map[string]interface{}
+	if forceDelete {
+		queryParameters = map[string]interface{}{
+			"forceDeletion": true,
+		}
+	}
+	response, rerr := c.armClient.PostResource(ctx, resourceID, "delete", vmInstanceIDs, queryParameters)
 	defer c.armClient.CloseResponse(ctx, response)
 
 	if rerr != nil {
@@ -540,11 +549,11 @@ func (c *Client) DeallocateInstancesAsync(ctx context.Context, resourceGroupName
 	resourceID := armclient.GetResourceID(
 		c.subscriptionID,
 		resourceGroupName,
-		"Microsoft.Compute/virtualMachineScaleSets",
+		vmssResourceType,
 		vmScaleSetName,
 	)
 
-	response, rerr := c.armClient.PostResource(ctx, resourceID, "deallocate", vmInstanceIDs)
+	response, rerr := c.armClient.PostResource(ctx, resourceID, "deallocate", vmInstanceIDs, map[string]interface{}{})
 	defer c.armClient.CloseResponse(ctx, response)
 
 	if rerr != nil {
@@ -589,11 +598,11 @@ func (c *Client) StartInstancesAsync(ctx context.Context, resourceGroupName stri
 	resourceID := armclient.GetResourceID(
 		c.subscriptionID,
 		resourceGroupName,
-		"Microsoft.Compute/virtualMachineScaleSets",
+		vmssResourceType,
 		vmScaleSetName,
 	)
 
-	response, rerr := c.armClient.PostResource(ctx, resourceID, "start", vmInstanceIDs)
+	response, rerr := c.armClient.PostResource(ctx, resourceID, "start", vmInstanceIDs, map[string]interface{}{})
 	defer c.armClient.CloseResponse(ctx, response)
 
 	if rerr != nil {
@@ -623,10 +632,10 @@ func (c *Client) deleteVMSSInstances(ctx context.Context, resourceGroupName stri
 	resourceID := armclient.GetResourceID(
 		c.subscriptionID,
 		resourceGroupName,
-		"Microsoft.Compute/virtualMachineScaleSets",
+		vmssResourceType,
 		vmScaleSetName,
 	)
-	response, rerr := c.armClient.PostResource(ctx, resourceID, "delete", vmInstanceIDs)
+	response, rerr := c.armClient.PostResource(ctx, resourceID, "delete", vmInstanceIDs, map[string]interface{}{})
 	defer c.armClient.CloseResponse(ctx, response)
 	if rerr != nil {
 		klog.V(5).Infof("Received error in %s: resourceID: %s, error: %s", "vmss.deletevms.request", resourceID, rerr.Error())
