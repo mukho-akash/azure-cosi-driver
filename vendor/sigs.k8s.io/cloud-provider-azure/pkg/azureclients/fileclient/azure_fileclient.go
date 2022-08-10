@@ -42,6 +42,12 @@ type ShareOptions struct {
 	Name       string
 	Protocol   storage.EnabledProtocols
 	RequestGiB int
+	// supported values: ""(by default), "TransactionOptimized", "Cool", "Hot", "Premium"
+	AccessTier string
+	// supported values: ""(by default), "AllSquash", "NoRootSquash", "RootSquash"
+	RootSquash string
+	// Metadata - A name-value pair to associate with the share as metadata.
+	Metadata map[string]*string
 }
 
 // New creates a azure file client
@@ -71,6 +77,15 @@ func (c *Client) CreateFileShare(resourceGroupName, accountName string, shareOpt
 	}
 	if shareOptions.Protocol == storage.EnabledProtocolsNFS {
 		fileShareProperties.EnabledProtocols = shareOptions.Protocol
+	}
+	if shareOptions.AccessTier != "" {
+		fileShareProperties.AccessTier = storage.ShareAccessTier(shareOptions.AccessTier)
+	}
+	if shareOptions.RootSquash != "" {
+		fileShareProperties.RootSquash = storage.RootSquashType(shareOptions.RootSquash)
+	}
+	if shareOptions.Metadata != nil {
+		fileShareProperties.Metadata = shareOptions.Metadata
 	}
 	fileShare := storage.FileShare{
 		Name:                &shareOptions.Name,
