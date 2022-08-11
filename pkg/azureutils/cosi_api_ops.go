@@ -5,20 +5,20 @@ import (
 	"strconv"
 	"strings"
 
-	cons "project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/constant"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 type BucketClassParameters struct {
-	bucketUnitType                 cons.BucketUnitType
+	bucketUnitType                 constant.BucketUnitType
 	createBucket                   bool
 	createStorageAccount           bool
 	storageAccountName             string
 	region                         string
-	accessTier                     cons.AccessTier
-	SKUName                        cons.SKU
+	accessTier                     constant.AccessTier
+	SKUName                        constant.SKU
 	resourceGroup                  string
 	allowBlobAccess                bool
 	allowSharedAccessKey           bool
@@ -30,109 +30,125 @@ type BucketClassParameters struct {
 }
 
 type BucketAccessClassParameters struct {
-	bucketUnitType    cons.BucketUnitType
+	bucketUnitType    constant.BucketUnitType
 	region            string
 	signedversion     string
-	signedPermissions cons.SignedPermissions
+	signedPermissions constant.SignedPermissions
 	signedExpiry      int
-	signedResouceType cons.SignedResourceType
+	signedResouceType constant.SignedResourceType
+}
+
+func CreateBucket(ctx context.Context, 
+	bucketName string,
+	parameters map[string]string,
+	cloud *azure.Cloud) (string, error) {
+	bucketClassParams, err := ParseBucketClassParameters(parameters)
+	if err != nil {
+		return "", status.Error(codes.Unknown, fmt.Sprintf("Error parsing parameters : %v", err))
+	}
+
+	if bucketClassParams.bucketUnitType == constant.Container {
+		return createContainerBucket(ctx, bucketName, &bucketClassParams, cloud)
+	} else {
+		return createStorageAccountBucket(ctx, bucketName, &bucketClassParams, cloud)
+	}
 }
 
 func ParseBucketClassParameters(parameters map[string]string) (BucketClassParameters, error) {
 	BCParams := BucketClassParameters{}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {
-		case cons.BucketUnitTypeField:
+		case constant.BucketUnitTypeField:
 			//determine unit type and set to container as default if blank
 			switch strings.ToLower(v) {
 			case "container":
-				BCParams.bucketUnitType = cons.Container
+				BCParams.bucketUnitType = constant.Container
 			case "":
-				BCParams.bucketUnitType = cons.Container
+				BCParams.bucketUnitType = constant.Container
 			case "storageaccount":
-				BCParams.bucketUnitType = cons.StorageAccount
+				BCParams.bucketUnitType = constant.StorageAccount
 			default:
 				return BucketClassParameters{}, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
 			}
-		case cons.CreateBucketField:
-			if cons.TrueValue == v {
+		case constant.CreateBucketField:
+			if constant.TrueValue == v {
 				BCParams.createBucket = true
 			} else {
 				BCParams.createBucket = false
 			}
-		case cons.CreateStorageAccountField:
-			if cons.TrueValue == v {
+		case constant.CreateStorageAccountField:
+			if constant.TrueValue == v {
 				BCParams.createStorageAccount = true
 			} else {
 				BCParams.createStorageAccount = false
 			}
-		case cons.StorageAccountNameField:
+		case constant.StorageAccountNameField:
 			BCParams.storageAccountName = v
-		case cons.RegionField:
+		case constant.RegionField:
 			BCParams.region = v
-		case cons.AccessTierField:
+		case constant.AccessTierField:
 			switch strings.ToLower(v) {
-			case cons.Hot.String():
-				BCParams.accessTier = cons.Hot
-			case cons.Cool.String():
-				BCParams.accessTier = cons.Cool
-			case cons.Archive.String():
-				BCParams.accessTier = cons.Archive
+			case constant.Hot.String():
+				BCParams.accessTier = constant.Hot
+			case constant.Cool.String():
+				BCParams.accessTier = constant.Cool
+			case constant.Archive.String():
+				BCParams.accessTier = constant.Archive
 			default:
 				return BCParams, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
 			}
-		case cons.SKUNameField:
+		case constant.SKUNameField:
 			switch strings.ToLower(v) {
-			case strings.ToLower(cons.Standard_LRS.String()):
-				BCParams.SKUName = cons.Standard_LRS
-			case strings.ToLower(cons.Standard_GRS.String()):
-				BCParams.SKUName = cons.Standard_GRS
-			case strings.ToLower(cons.Standard_RAGRS.String()):
-				BCParams.SKUName = cons.Standard_RAGRS
-			case strings.ToLower(cons.Premium_LRS.String()):
-				BCParams.SKUName = cons.Premium_LRS
+			case strings.ToLower(constant.Standard_LRS.String()):
+				BCParams.SKUName = constant.Standard_LRS
+			case strings.ToLower(constant.Standard_GRS.String()):
+				BCParams.SKUName = constant.Standard_GRS
+			case strings.ToLower(constant.Standard_RAGRS.String()):
+				BCParams.SKUName = constant.Standard_RAGRS
+			case strings.ToLower(constant.Premium_LRS.String()):
+				BCParams.SKUName = constant.Premium_LRS
 			default:
 				return BCParams, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
 			}
-		case cons.ResourceGroupField:
+		case constant.ResourceGroupField:
 			BCParams.resourceGroup = v
-		case cons.AllowBlobAccessField:
-			if cons.TrueValue == v {
+		case constant.AllowBlobAccessField:
+			if constant.TrueValue == v {
 				BCParams.allowBlobAccess = true
 			} else {
 				BCParams.allowBlobAccess = false
 			}
-		case cons.AllowSharedAccessKeyField:
-			if cons.TrueValue == v {
+		case constant.AllowSharedAccessKeyField:
+			if constant.TrueValue == v {
 				BCParams.allowSharedAccessKey = true
 			} else {
 				BCParams.allowSharedAccessKey = false
 			}
-		case cons.EnableBlobVersioningField:
-			if cons.TrueValue == v {
+		case constant.EnableBlobVersioningField:
+			if constant.TrueValue == v {
 				BCParams.enableBlobVersioning = true
 			} else {
 				BCParams.enableBlobVersioning = false
 			}
-		case cons.EnableBlobDeleteRetentionField:
-			if cons.TrueValue == v {
+		case constant.EnableBlobDeleteRetentionField:
+			if constant.TrueValue == v {
 				BCParams.enableBlobDeleteRetention = true
 			} else {
 				BCParams.enableBlobDeleteRetention = false
 			}
-		case cons.BlobDeleteRetentionDaysField:
+		case constant.BlobDeleteRetentionDaysField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
 				return BCParams, status.Error(codes.InvalidArgument, err.Error())
 			}
 			BCParams.blobDeleteRetentionDays = days
-		case cons.EnableContainerDeleteRetentionField:
-			if cons.TrueValue == v {
+		case constant.EnableContainerDeleteRetentionField:
+			if constant.TrueValue == v {
 				BCParams.enableContainerDeleteRetention = true
 			} else {
 				BCParams.enableContainerDeleteRetention = false
 			}
-		case cons.ContainerDeleteRetentionDaysField:
+		case constant.ContainerDeleteRetentionDaysField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
 				return BCParams, status.Error(codes.InvalidArgument, err.Error())
@@ -147,61 +163,61 @@ func ParseBucketAccessClassParameters(parameters map[string]string) (BucketAcces
 	BACParams := BucketAccessClassParameters{}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {
-		case cons.BucketUnitTypeField:
+		case constant.BucketUnitTypeField:
 			//determine unit type and set to container as default if blank
 			switch strings.ToLower(v) {
 			case "container":
-				BACParams.bucketUnitType = cons.Container
+				BACParams.bucketUnitType = constant.Container
 			case "":
-				BACParams.bucketUnitType = cons.Container
+				BACParams.bucketUnitType = constant.Container
 			case "storageaccount":
-				BACParams.bucketUnitType = cons.StorageAccount
+				BACParams.bucketUnitType = constant.StorageAccount
 			default:
 				return BucketAccessClassParameters{}, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
 			}
-		case cons.RegionField:
+		case constant.RegionField:
 			BACParams.region = v
-		case cons.SignedVersionField:
+		case constant.SignedVersionField:
 			BACParams.signedversion = v
-		case cons.SignedPermissionsField:
+		case constant.SignedPermissionsField:
 			switch strings.ToLower(v) {
-			case cons.Read.String():
-				BACParams.signedPermissions = cons.Read
-			case cons.Add.String():
-				BACParams.signedPermissions = cons.Add
-			case cons.Create.String():
-				BACParams.signedPermissions = cons.Create
-			case cons.Write.String():
-				BACParams.signedPermissions = cons.Write
-			case cons.Delete.String():
-				BACParams.signedPermissions = cons.Delete
-			case cons.ReadWrite.String():
-				BACParams.signedPermissions = cons.ReadWrite
-			case cons.AddDelete.String():
-				BACParams.signedPermissions = cons.AddDelete
-			case cons.List.String():
-				BACParams.signedPermissions = cons.List
-			case cons.DeleteVersion.String():
-				BACParams.signedPermissions = cons.Delete
-			case cons.PermanentDelete.String():
-				BACParams.signedPermissions = cons.PermanentDelete
-			case cons.All.String():
-				BACParams.signedPermissions = cons.All
+			case constant.Read.String():
+				BACParams.signedPermissions = constant.Read
+			case constant.Add.String():
+				BACParams.signedPermissions = constant.Add
+			case constant.Create.String():
+				BACParams.signedPermissions = constant.Create
+			case constant.Write.String():
+				BACParams.signedPermissions = constant.Write
+			case constant.Delete.String():
+				BACParams.signedPermissions = constant.Delete
+			case constant.ReadWrite.String():
+				BACParams.signedPermissions = constant.ReadWrite
+			case constant.AddDelete.String():
+				BACParams.signedPermissions = constant.AddDelete
+			case constant.List.String():
+				BACParams.signedPermissions = constant.List
+			case constant.DeleteVersion.String():
+				BACParams.signedPermissions = constant.Delete
+			case constant.PermanentDelete.String():
+				BACParams.signedPermissions = constant.PermanentDelete
+			case constant.All.String():
+				BACParams.signedPermissions = constant.All
 			}
-		case cons.SignedExpiryField:
+		case constant.SignedExpiryField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
 				return BACParams, status.Error(codes.InvalidArgument, err.Error())
 			}
 			BACParams.signedExpiry = days
-		case cons.SignedResourceTypeField:
+		case constant.SignedResourceTypeField:
 			switch strings.ToLower(v) {
-			case cons.TypeObject.String():
-				BACParams.signedResouceType = cons.TypeObject
-			case cons.TypeContainer.String():
-				BACParams.signedResouceType = cons.TypeContainer
-			case cons.TypeObjectAndContainer.String():
-				BACParams.signedResouceType = cons.TypeObjectAndContainer
+			case constant.TypeObject.String():
+				BACParams.signedResouceType = constant.TypeObject
+			case constant.TypeContainer.String():
+				BACParams.signedResouceType = constant.TypeContainer
+			case constant.TypeObjectAndContainer.String():
+				BACParams.signedResouceType = constant.TypeObjectAndContainer
 			}
 		}
 	}
