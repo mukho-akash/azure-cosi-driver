@@ -14,6 +14,7 @@
 package azureutils
 
 import (
+	"context"
 	"strings"
 
 	"project/azure-cosi-driver/pkg/constant"
@@ -22,6 +23,15 @@ import (
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
+
+func DeleteStorageAccount(
+	ctx context.Context,
+	account string,
+	cloud *azure.Cloud) error {
+	SAClient := cloud.StorageAccountClient
+	SAClient.Delete(ctx, cloud.ResourceGroup, account)
+	return nil
+}
 
 func parseParametersForStorageAccount(
 	parameters map[string]string,

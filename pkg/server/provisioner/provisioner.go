@@ -130,9 +130,23 @@ func (pr *provisioner) DriverCreateBucket(
 func (pr *provisioner) DriverDeleteBucket(
 	ctx context.Context,
 	req *spec.DriverDeleteBucketRequest) (*spec.DriverDeleteBucketResponse, error) {
+	//determine if the bucket is an account or a blob container
 	bucketId := req.GetBucketId()
+	account, container, blob := azureutils.Parsecontainerurl(bucketId)
+	if account == "" {
+		return nil, status.Error(codes.InvalidArgument, "Storage Account required")
+	}
+	if blob != "" {
+		return nil, status.Error(codes.InvalidArgument, "Individual Blobs unsupported. Please use Blob Containers or Storage Accounts instead.")
+	}
+
 	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketId)
-	err := azureutils.DeleteBucket(ctx, bucketId, pr.cloud)
+	var err error
+	if container == "" { //container not present, deleting storage account
+		err = azureutils.DeleteStorageAccount(ctx, account, pr.cloud)
+	} else { //container name present, deleting container
+		err = azureutils.DeleteBucket(ctx, bucketId, pr.cloud)
+	}
 
 	if err != nil {
 		return nil, err
