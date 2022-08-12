@@ -82,12 +82,12 @@ func DeleteBucket(
 }
 
 func getStorageAccountNameFromContainerUrl(containerUrl string) string {
-	storageAccountName, _, _ := parseContainerUrl(containerUrl)
+	storageAccountName, _, _ := Parsecontainerurl(containerUrl)
 	return storageAccountName
 }
 
 func getContainerNameFromContainerUrl(containerUrl string) string {
-	_, containerName, _ := parseContainerUrl(containerUrl)
+	_, containerName, _ := Parsecontainerurl(containerUrl)
 	return containerName
 }
 
@@ -133,7 +133,7 @@ func createContainerUrl(
 
 }
 
-func parseContainerUrl(containerUrl string) (string, string, string) {
+func Parsecontainerurl(containerUrl string) (string, string, string) {
 	matches := storageAccountRE.FindStringSubmatch(containerUrl)
 	storageAccount := matches[1]
 	containerName := matches[2]

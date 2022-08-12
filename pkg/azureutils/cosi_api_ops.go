@@ -1,6 +1,7 @@
 package azureutils
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
 type BucketClassParameters struct {
@@ -38,11 +40,11 @@ type BucketAccessClassParameters struct {
 	signedResouceType constant.SignedResourceType
 }
 
-func CreateBucket(ctx context.Context, 
+func CreateBucket(ctx context.Context,
 	bucketName string,
 	parameters map[string]string,
 	cloud *azure.Cloud) (string, error) {
-	bucketClassParams, err := ParseBucketClassParameters(parameters)
+	bucketClassParams, err := parseBucketClassParameters(parameters)
 	if err != nil {
 		return "", status.Error(codes.Unknown, fmt.Sprintf("Error parsing parameters : %v", err))
 	}
@@ -54,7 +56,7 @@ func CreateBucket(ctx context.Context,
 	}
 }
 
-func ParseBucketClassParameters(parameters map[string]string) (BucketClassParameters, error) {
+func parseBucketClassParameters(parameters map[string]string) (BucketClassParameters, error) {
 	BCParams := BucketClassParameters{}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {
@@ -159,7 +161,7 @@ func ParseBucketClassParameters(parameters map[string]string) (BucketClassParame
 	return BCParams, nil
 }
 
-func ParseBucketAccessClassParameters(parameters map[string]string) (BucketAccessClassParameters, error) {
+func parseBucketAccessClassParameters(parameters map[string]string) (BucketAccessClassParameters, error) {
 	BACParams := BucketAccessClassParameters{}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {

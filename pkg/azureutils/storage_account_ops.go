@@ -29,7 +29,7 @@ func DeleteStorageAccount(
 	account string,
 	cloud *azure.Cloud) error {
 	SAClient := cloud.StorageAccountClient
-	SAClient.Delete(ctx, cloud.ResourceGroup, account)
+	SAClient.Delete(ctx, cloud.SubscriptionID, cloud.ResourceGroup, account)
 	return nil
 }
 
