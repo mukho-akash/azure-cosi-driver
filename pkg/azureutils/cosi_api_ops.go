@@ -73,13 +73,13 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 				return BucketClassParameters{}, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
 			}
 		case constant.CreateBucketField:
-			if constant.TrueValue == v {
+			if TrueValue == v {
 				BCParams.createBucket = true
 			} else {
 				BCParams.createBucket = false
 			}
 		case constant.CreateStorageAccountField:
-			if constant.TrueValue == v {
+			if TrueValue == v {
 				BCParams.createStorageAccount = true
 			} else {
 				BCParams.createStorageAccount = false
@@ -115,25 +115,25 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 		case constant.ResourceGroupField:
 			BCParams.resourceGroup = v
 		case constant.AllowBlobAccessField:
-			if constant.TrueValue == v {
+			if TrueValue == v {
 				BCParams.allowBlobAccess = true
 			} else {
 				BCParams.allowBlobAccess = false
 			}
 		case constant.AllowSharedAccessKeyField:
-			if constant.TrueValue == v {
+			if TrueValue == v {
 				BCParams.allowSharedAccessKey = true
 			} else {
 				BCParams.allowSharedAccessKey = false
 			}
 		case constant.EnableBlobVersioningField:
-			if constant.TrueValue == v {
+			if TrueValue == v {
 				BCParams.enableBlobVersioning = true
 			} else {
 				BCParams.enableBlobVersioning = false
 			}
 		case constant.EnableBlobDeleteRetentionField:
-			if constant.TrueValue == v {
+			if TrueValue == v {
 				BCParams.enableBlobDeleteRetention = true
 			} else {
 				BCParams.enableBlobDeleteRetention = false
@@ -145,7 +145,7 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 			}
 			BCParams.blobDeleteRetentionDays = days
 		case constant.EnableContainerDeleteRetentionField:
-			if constant.TrueValue == v {
+			if TrueValue == v {
 				BCParams.enableContainerDeleteRetention = true
 			} else {
 				BCParams.enableContainerDeleteRetention = false

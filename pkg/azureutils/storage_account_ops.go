@@ -17,8 +17,6 @@ import (
 	"context"
 	"strings"
 
-	"project/azure-cosi-driver/pkg/constant"
-
 	"github.com/Azure/go-autorest/autorest/to"
 	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
@@ -55,34 +53,34 @@ func parseParametersForStorageAccount(
 
 	for key, val := range parameters {
 		switch strings.ToLower(key) {
-		case constant.StorageAccountTypeField:
+		case StorageAccountTypeField:
 			accountType = val
-		case constant.LocationField:
+		case LocationField:
 			location = val
-		case constant.KindField:
+		case KindField:
 			kind = val
-		case constant.TagsField:
+		case TagsField:
 			customTags = val
-		case constant.VNResourceIdsField:
+		case VNResourceIdsField:
 			nvResourceIdsStr = val
-		case constant.HTTPSTrafficOnlyField:
-			if strings.EqualFold(val, constant.TrueValue) {
+		case HTTPSTrafficOnlyField:
+			if strings.EqualFold(val, TrueValue) {
 				enableHTTPSTrafficOnly = true
 			}
-		case constant.CreatePrivateEndpointField:
-			if strings.EqualFold(val, constant.TrueValue) {
+		case CreatePrivateEndpointField:
+			if strings.EqualFold(val, TrueValue) {
 				createPrivateEndpoint = true
 			}
-		case constant.HNSEnabledField:
-			if strings.EqualFold(val, constant.TrueValue) {
+		case HNSEnabledField:
+			if strings.EqualFold(val, TrueValue) {
 				isHnsEnabled = true
 			}
-		case constant.EnableNFSV3Field:
-			if strings.EqualFold(val, constant.TrueValue) {
+		case EnableNFSV3Field:
+			if strings.EqualFold(val, TrueValue) {
 				enableNfsV3 = true
 			}
-		case constant.EnableLargeFileSharesField:
-			if strings.EqualFold(val, constant.TrueValue) {
+		case EnableLargeFileSharesField:
+			if strings.EqualFold(val, TrueValue) {
 				enableLargeFileShares = true
 			}
 		}
@@ -92,7 +90,7 @@ func parseParametersForStorageAccount(
 		accountType = consts.DefaultStorageAccountType
 	}
 
-	tags, err := constant.ConvertTagsToMap(customTags)
+	tags, err := ConvertTagsToMap(customTags)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +104,7 @@ func parseParametersForStorageAccount(
 		EnableLargeFileShare:      enableLargeFileShares,
 		EnableNfsV3:               to.BoolPtr(enableNfsV3),
 		CreatePrivateEndpoint:     createPrivateEndpoint,
-		VirtualNetworkResourceIDs: strings.Split(nvResourceIdsStr, constant.TagsDelimiter),
+		VirtualNetworkResourceIDs: strings.Split(nvResourceIdsStr, TagsDelimiter),
 		Tags:                      tags,
 	}, nil
 }
