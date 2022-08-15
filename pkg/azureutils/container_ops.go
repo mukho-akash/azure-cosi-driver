@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	AccessKey = "t022Cjyk6NsuJsq0s+rBoTs3YQM/FjM2akIs/WIUah9dwz7AD+NiKr/QqQe9nzs8/aXeceH/NtbsK6wyAunr6A=="
+	AccessKey = ""
 )
 
 var (
