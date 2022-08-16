@@ -15,10 +15,7 @@ package azureutils
 
 import (
 	"context"
-	"strings"
 
-	"github.com/Azure/go-autorest/autorest/to"
-	"sigs.k8s.io/cloud-provider-azure/pkg/consts"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
@@ -35,82 +32,4 @@ func createStorageAccountBucket(ctx context.Context,
 	bucketName string,
 	parameters *BucketClassParameters,
 	cloud *azure.Cloud) (string, error) {
-}
-
-func parseParametersForStorageAccount(
-	parameters map[string]string,
-	cloud *azure.Cloud) (*azure.AccountOptions, error) {
-	if parameters == nil {
-		parameters = make(map[string]string)
-	}
-
-	var (
-		enableHTTPSTrafficOnly bool
-		createPrivateEndpoint  bool
-		isHnsEnabled           bool
-		enableNfsV3            bool
-		enableLargeFileShares  bool
-		accountType            string
-		kind                   string
-		nvResourceIdsStr       string
-		customTags             string
-		location               string
-	)
-
-	for key, val := range parameters {
-		switch strings.ToLower(key) {
-		case StorageAccountTypeField:
-			accountType = val
-		case LocationField:
-			location = val
-		case KindField:
-			kind = val
-		case TagsField:
-			customTags = val
-		case VNResourceIdsField:
-			nvResourceIdsStr = val
-		case HTTPSTrafficOnlyField:
-			if strings.EqualFold(val, TrueValue) {
-				enableHTTPSTrafficOnly = true
-			}
-		case CreatePrivateEndpointField:
-			if strings.EqualFold(val, TrueValue) {
-				createPrivateEndpoint = true
-			}
-		case HNSEnabledField:
-			if strings.EqualFold(val, TrueValue) {
-				isHnsEnabled = true
-			}
-		case EnableNFSV3Field:
-			if strings.EqualFold(val, TrueValue) {
-				enableNfsV3 = true
-			}
-		case EnableLargeFileSharesField:
-			if strings.EqualFold(val, TrueValue) {
-				enableLargeFileShares = true
-			}
-		}
-	}
-
-	if accountType == "" {
-		accountType = consts.DefaultStorageAccountType
-	}
-
-	tags, err := ConvertTagsToMap(customTags)
-	if err != nil {
-		return nil, err
-	}
-
-	return &azure.AccountOptions{
-		Type:                      accountType,
-		Kind:                      kind,
-		Location:                  location,
-		EnableHTTPSTrafficOnly:    enableHTTPSTrafficOnly,
-		IsHnsEnabled:              to.BoolPtr(isHnsEnabled),
-		EnableLargeFileShare:      enableLargeFileShares,
-		EnableNfsV3:               to.BoolPtr(enableNfsV3),
-		CreatePrivateEndpoint:     createPrivateEndpoint,
-		VirtualNetworkResourceIDs: strings.Split(nvResourceIdsStr, TagsDelimiter),
-		Tags:                      tags,
-	}, nil
 }

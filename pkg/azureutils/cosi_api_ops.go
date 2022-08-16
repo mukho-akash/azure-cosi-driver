@@ -8,6 +8,7 @@ import (
 
 	"project/azure-cosi-driver/pkg/constant"
 
+	"github.com/Azure/go-autorest/autorest/to"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -79,8 +80,9 @@ func DeleteBucket(ctx context.Context,
 	return err
 }
 
-func parseBucketClassParameters(parameters map[string]string) (BucketClassParameters, error) {
-	BCParams := BucketClassParameters{}
+func parseBucketClassParameters(parameters map[string]string) (*BucketClassParameters, *azure.AccountOptions, error) {
+	BCParams := &BucketClassParameters{}
+	AccOptions := &azure.AccountOptions{}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {
 		case constant.BucketUnitTypeField:
@@ -93,16 +95,16 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 			case "storageaccount":
 				BCParams.bucketUnitType = constant.StorageAccount
 			default:
-				return BucketClassParameters{}, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
+				return nil, nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
 			}
 		case constant.CreateBucketField:
-			if TrueValue == v {
+			if strings.EqualFold(v, TrueValue) {
 				BCParams.createBucket = true
 			} else {
 				BCParams.createBucket = false
 			}
 		case constant.CreateStorageAccountField:
-			if TrueValue == v {
+			if strings.EqualFold(v, TrueValue) {
 				BCParams.createStorageAccount = true
 			} else {
 				BCParams.createStorageAccount = false
@@ -111,6 +113,7 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 			BCParams.storageAccountName = v
 		case constant.RegionField:
 			BCParams.region = v
+			AccOptions.Location = v
 		case constant.AccessTierField:
 			switch strings.ToLower(v) {
 			case constant.Hot.String():
@@ -120,7 +123,7 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 			case constant.Archive.String():
 				BCParams.accessTier = constant.Archive
 			default:
-				return BCParams, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
+				return nil, nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
 			}
 		case constant.SKUNameField:
 			switch strings.ToLower(v) {
@@ -133,30 +136,30 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 			case strings.ToLower(constant.Premium_LRS.String()):
 				BCParams.SKUName = constant.Premium_LRS
 			default:
-				return BCParams, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
+				return nil, nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
 			}
 		case constant.ResourceGroupField:
 			BCParams.resourceGroup = v
 		case constant.AllowBlobAccessField:
-			if TrueValue == v {
+			if strings.EqualFold(v, TrueValue) {
 				BCParams.allowBlobAccess = true
 			} else {
 				BCParams.allowBlobAccess = false
 			}
 		case constant.AllowSharedAccessKeyField:
-			if TrueValue == v {
+			if strings.EqualFold(v, TrueValue) {
 				BCParams.allowSharedAccessKey = true
 			} else {
 				BCParams.allowSharedAccessKey = false
 			}
 		case constant.EnableBlobVersioningField:
-			if TrueValue == v {
+			if strings.EqualFold(v, TrueValue) {
 				BCParams.enableBlobVersioning = true
 			} else {
 				BCParams.enableBlobVersioning = false
 			}
 		case constant.EnableBlobDeleteRetentionField:
-			if TrueValue == v {
+			if strings.EqualFold(v, TrueValue) {
 				BCParams.enableBlobDeleteRetention = true
 			} else {
 				BCParams.enableBlobDeleteRetention = false
@@ -164,11 +167,11 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 		case constant.BlobDeleteRetentionDaysField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
-				return BCParams, status.Error(codes.InvalidArgument, err.Error())
+				return nil, nil, status.Error(codes.InvalidArgument, err.Error())
 			}
 			BCParams.blobDeleteRetentionDays = days
 		case constant.EnableContainerDeleteRetentionField:
-			if TrueValue == v {
+			if strings.EqualFold(v, TrueValue) {
 				BCParams.enableContainerDeleteRetention = true
 			} else {
 				BCParams.enableContainerDeleteRetention = false
@@ -176,12 +179,50 @@ func parseBucketClassParameters(parameters map[string]string) (BucketClassParame
 		case constant.ContainerDeleteRetentionDaysField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
-				return BCParams, status.Error(codes.InvalidArgument, err.Error())
+				return nil, nil, status.Error(codes.InvalidArgument, err.Error())
 			}
 			BCParams.containerDeleteRetentionDays = days
+		case StorageAccountTypeField: //Account Options Variables
+			AccOptions.Type = v
+		case KindField:
+			AccOptions.Kind = v
+		case TagsField:
+			tags, err := ConvertTagsToMap(v)
+			if err != nil {
+				return nil, nil, err
+			}
+			AccOptions.Tags = tags
+		case VNResourceIdsField:
+			AccOptions.VirtualNetworkResourceIDs = strings.Split(v, TagsDelimiter)
+		case HTTPSTrafficOnlyField:
+			if strings.EqualFold(v, TrueValue) {
+				AccOptions.EnableHTTPSTrafficOnly = true
+			}
+		case CreatePrivateEndpointField:
+			if strings.EqualFold(v, TrueValue) {
+				AccOptions.CreatePrivateEndpoint = true
+			}
+		case HNSEnabledField:
+			if strings.EqualFold(v, TrueValue) {
+				IsHnsEnabled := true
+				AccOptions.IsHnsEnabled = to.BoolPtr(IsHnsEnabled)
+			}
+		case EnableNFSV3Field:
+			if strings.EqualFold(v, TrueValue) {
+				EnableNfsV3 := true
+				AccOptions.EnableNfsV3 = to.BoolPtr(EnableNfsV3)
+			}
+		case EnableLargeFileSharesField:
+			if strings.EqualFold(v, TrueValue) {
+				AccOptions.EnableLargeFileShare = true
+			}
 		}
 	}
-	return BCParams, nil
+	if BCParams.bucketUnitType == constant.StorageAccount {
+		return BCParams, AccOptions, nil
+	} else {
+		return BCParams, nil, nil
+	}
 }
 
 func parseBucketAccessClassParameters(parameters map[string]string) (BucketAccessClassParameters, error) {
