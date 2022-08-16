@@ -33,30 +33,17 @@ var (
 	storageAccountRE = regexp.MustCompile(`https://(.+).blob.core.windows.net/([^/]*)/?(.*)`)
 )
 
-func CreateBucket(
+func createContainerBucket(
 	ctx context.Context,
-	storageAccount string,
-	containerName string,
-	parameters map[string]string,
+	bucketName string,
+	parameters *BucketClassParameters,
 	cloud *azure.Cloud) (string, error) {
 
-	options, err := parseParametersForStorageAccount(parameters, cloud)
-	if err != nil {
-		return "", status.Error(codes.Unknown, fmt.Sprintf("Error parsing parameters : %v", err))
-	}
-
-	options.Name = storageAccount
-	options.ResourceGroup = cloud.ResourceGroup
-	options.CreateAccount = true
-
-	// Check and create StorageAccount here
-	accountName, accessKey, err := cloud.EnsureStorageAccount(options, "")
-	if err != nil {
-		return "", status.Error(codes.Unknown, fmt.Sprintf("Error creating storage account with name %s : %v", storageAccount, err))
-	}
-
-	// Once storage account is created, we create the azure container inside the storage account
-	return createAzureContainer(ctx, accountName, accessKey, containerName, parameters)
+	// 1. Before creating container, check if storage account exists.
+	// 2. If storage account doesn't exist, check if CreateStorageAccount is true,
+	// and create the storage account.
+	// Else if CreateStorageAccount is false, return error.
+	// 3. If storage account exists, go ahead and create the container.
 }
 
 func DeleteBucket(

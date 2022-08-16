@@ -69,7 +69,7 @@ func NewProvisionerServer(
 func (pr *provisioner) DriverCreateBucket(
 	ctx context.Context,
 	req *spec.DriverCreateBucketRequest) (*spec.DriverCreateBucketResponse, error) {
-	protocol := req.GetProtocol()
+	/* protocol := req.GetProtocol()
 	if protocol == nil {
 		return nil, status.Error(codes.InvalidArgument, "Protocol is nil")
 	}
@@ -77,12 +77,12 @@ func (pr *provisioner) DriverCreateBucket(
 	azureBlob := protocol.GetAzureBlob()
 	if azureBlob == nil {
 		return nil, status.Error(codes.InvalidArgument, "Azure blob protocol is missing")
-	}
+	}*/
 
 	bucketName := req.GetName()
 	parameters := req.GetParameters()
 	if parameters == nil {
-		parameters = make(map[string]string)
+		return nil, status.Error(codes.InvalidArgument, "Parameters missing. Cannot initialize Azure bucket.")
 	}
 
 	// Check if a bucket with these set of values exist in the namesToBucketMap
@@ -106,7 +106,7 @@ func (pr *provisioner) DriverCreateBucket(
 
 	storageAccountName := azureBlob.StorageAccount
 
-	bucketId, err := azureutils.CreateBucket(ctx, storageAccountName, bucketName, parameters, pr.cloud)
+	bucketId, err := azureutils.CreateBucket(ctx, bucketName, parameters, pr.cloud)
 	if err != nil {
 		return nil, err
 	}

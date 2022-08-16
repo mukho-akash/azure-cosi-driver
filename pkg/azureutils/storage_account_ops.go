@@ -31,6 +31,11 @@ func DeleteStorageAccount(
 	return nil
 }
 
+func createStorageAccountBucket(ctx context.Context, 
+	bucketName string,
+	parameters *BucketClassParameters, 
+	cloud *azure.Cloud) (string, error) {}
+
 func parseParametersForStorageAccount(
 	parameters map[string]string,
 	cloud *azure.Cloud) (*azure.AccountOptions, error) {
