@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
@@ -54,6 +55,28 @@ func CreateBucket(ctx context.Context,
 	} else {
 		return createStorageAccountBucket(ctx, bucketName, &bucketClassParams, cloud)
 	}
+}
+
+func DeleteBucket(ctx context.Context,
+	bucketId string,
+	cloud *azure.Cloud) error {
+	//determine if the bucket is an account or a blob container
+	account, container, blob := parsecontainerurl(bucketId)
+	if account == "" {
+		return status.Error(codes.InvalidArgument, "Storage Account required")
+	}
+	if blob != "" {
+		return status.Error(codes.InvalidArgument, "Individual Blobs unsupported. Please use Blob Containers or Storage Accounts instead.")
+	}
+
+	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketId)
+	var err error
+	if container == "" { //container not present, deleting storage account
+		err = DeleteStorageAccount(ctx, account, cloud)
+	} else { //container name present, deleting container
+		err = DeleteContainerBucket(ctx, bucketId, cloud)
+	}
+	return err
 }
 
 func parseBucketClassParameters(parameters map[string]string) (BucketClassParameters, error) {

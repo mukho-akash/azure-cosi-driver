@@ -20,8 +20,6 @@ import (
 	"regexp"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
@@ -46,14 +44,14 @@ func createContainerBucket(
 	// 3. If storage account exists, go ahead and create the container.
 }
 
-func DeleteBucket(
+func DeleteContainerBucket(
 	ctx context.Context,
 	bucketId string,
 	cloud *azure.Cloud) error {
 	// Get storage account name from bucketId
 	storageAccountName := getStorageAccountNameFromContainerUrl(bucketId)
 	// Get access keys for the storage account
-	accessKey, err := cloud.GetStorageAccesskey(storageAccountName, cloud.ResourceGroup)
+	accessKey, err := cloud.GetStorageAccesskey(ctx, cloud.SubscriptionID, storageAccountName, cloud.ResourceGroup)
 	if err != nil {
 		return err
 	}
@@ -69,12 +67,12 @@ func DeleteBucket(
 }
 
 func getStorageAccountNameFromContainerUrl(containerUrl string) string {
-	storageAccountName, _, _ := Parsecontainerurl(containerUrl)
+	storageAccountName, _, _ := parsecontainerurl(containerUrl)
 	return storageAccountName
 }
 
 func getContainerNameFromContainerUrl(containerUrl string) string {
-	_, containerName, _ := Parsecontainerurl(containerUrl)
+	_, containerName, _ := parsecontainerurl(containerUrl)
 	return containerName
 }
 
@@ -120,7 +118,7 @@ func createContainerUrl(
 
 }
 
-func Parsecontainerurl(containerUrl string) (string, string, string) {
+func parsecontainerurl(containerUrl string) (string, string, string) {
 	matches := storageAccountRE.FindStringSubmatch(containerUrl)
 	storageAccount := matches[1]
 	containerName := matches[2]
