@@ -38,37 +38,12 @@ func createContainerBucket(
 	bucketName string,
 	parameters *BucketClassParameters,
 	cloud *azure.Cloud) (string, error) {
-	// 1. Before creating container, check if storage account exists.
-	accExists := false
-	accList, rerr := cloud.StorageAccountClient.ListByResourceGroup(ctx, cloud.SubscriptionID, parameters.resourceGroup)
-	if rerr != nil {
-		return "", status.Error(codes.Internal, fmt.Sprintf("Could not obtain list of storage accounts: %w", rerr.Error()))
-	}
-	for _, sa := range accList {
-		if *sa.Name == parameters.storageAccountName {
-			accExists = true
-		}
-	}
-
-	// 2. If storage account doesn't exist, check if CreateStorageAccount is true,
-	// and create the storage account.
-	if !accExists {
-		if parameters.createStorageAccount {
-			_, _, err := cloud.EnsureStorageAccount(ctx, parameters.accOptions, "")
-			if err != nil {
-				return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %w", err))
-			}
-			// Else if CreateStorageAccount is false, return error.
-		} else {
-			return "", status.Error(codes.NotFound, "Storage Account could not be found")
-		}
-	}
-	// 3. If storage account exists, go ahead and create the container.
-	key, err := cloud.GetStorageAccesskey(ctx, cloud.SubscriptionID, parameters.storageAccountName, parameters.resourceGroup)
+	accOptions := getAccountOptions(parameters)
+	_, key, err := cloud.EnsureStorageAccount(ctx, accOptions, "")
 	if err != nil {
-		return "", status.Error(codes.Internal, fmt.Sprintf("Could get storage access key: %w", err))
+		return "", status.Error(codes.Internal, fmt.Sprintf("Could not ensure storage account %s exists: %v", accOptions.Name, err))
 	}
-	containerParams := make(map[string]string)
+	containerParams := make(map[string]string) //NOTE: Container parameters still need to be filled/implemented
 	return createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
 }
 

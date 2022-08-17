@@ -37,7 +37,7 @@ func createStorageAccountBucket(ctx context.Context,
 	bucketName string,
 	parameters *BucketClassParameters,
 	cloud *azure.Cloud) (string, error) {
-	accName, _, err := cloud.EnsureStorageAccount(ctx, parameters.accOptions, "")
+	accName, _, err := cloud.EnsureStorageAccount(ctx, getAccountOptions(parameters), "")
 	if err != nil {
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %w", err))
 	}
@@ -53,7 +53,7 @@ func createStorageAccountBucket(ctx context.Context,
 		postCreationTags["EnableContainerDeleteRetention"] = to.StringPtr(TrueValue)
 		postCreationTags["ContainerDeleteRetentionDays"] = to.StringPtr(strconv.FormatInt(10, parameters.containerDeleteRetentionDays))
 	}
-	rerr := cloud.AddStorageAccountTags(ctx, parameters.accOptions.SubscriptionID, parameters.resourceGroup, accName, postCreationTags)
+	rerr := cloud.AddStorageAccountTags(ctx, cloud.SubscriptionID, parameters.resourceGroup, accName, postCreationTags)
 	if err != nil {
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %w", rerr.Error()))
 	}

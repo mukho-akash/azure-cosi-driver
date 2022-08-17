@@ -31,7 +31,16 @@ type BucketClassParameters struct {
 	blobDeleteRetentionDays        int
 	enableContainerDeleteRetention bool
 	containerDeleteRetentionDays   int
-	accOptions                     *azure.AccountOptions
+	//account options
+	storageAccountType        string
+	kind                      constant.Kind
+	tags                      map[string]string
+	virtualNetworkResourceIDs []string
+	enableHttpsTrafficOnly    bool
+	createPrivateEndpoint     bool
+	isHnsEnabled              bool
+	enableNfsV3               bool
+	enableLargeFileShare      bool
 }
 
 type BucketAccessClassParameters struct {
@@ -83,7 +92,6 @@ func DeleteBucket(ctx context.Context,
 
 func parseBucketClassParameters(parameters map[string]string) (*BucketClassParameters, error) {
 	BCParams := &BucketClassParameters{}
-	AccOptions := &azure.AccountOptions{}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {
 		case constant.BucketUnitTypeField:
@@ -114,7 +122,6 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			BCParams.storageAccountName = v
 		case constant.RegionField:
 			BCParams.region = v
-			AccOptions.Location = v
 		case constant.AccessTierField:
 			switch strings.ToLower(v) {
 			case constant.Hot.String():
@@ -184,42 +191,52 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 			BCParams.containerDeleteRetentionDays = days
 		case StorageAccountTypeField: //Account Options Variables
-			AccOptions.Type = v
+			BCParams.storageAccountType = v
 		case KindField:
-			AccOptions.Kind = v
+			switch strings.ToLower(v) {
+			case strings.ToLower(constant.StorageV2.String()):
+				BCParams.kind = constant.StorageV2
+			case strings.ToLower(constant.Storage.String()):
+				BCParams.kind = constant.Storage
+			case strings.ToLower(constant.BlobStorage.String()):
+				BCParams.kind = constant.BlobStorage
+			case strings.ToLower(constant.BlockBlobStorage.String()):
+				BCParams.kind = constant.BlockBlobStorage
+			case strings.ToLower(constant.FileStorage.String()):
+				BCParams.kind = constant.FileStorage
+			default:
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Account Kind %s is unsupported", v))
+			}
 		case TagsField:
 			tags, err := ConvertTagsToMap(v)
 			if err != nil {
 				return nil, err
 			}
-			AccOptions.Tags = tags
+			BCParams.tags = tags
 		case VNResourceIdsField:
-			AccOptions.VirtualNetworkResourceIDs = strings.Split(v, TagsDelimiter)
+			BCParams.virtualNetworkResourceIDs = strings.Split(v, TagsDelimiter)
 		case HTTPSTrafficOnlyField:
 			if strings.EqualFold(v, TrueValue) {
-				AccOptions.EnableHTTPSTrafficOnly = true
+				BCParams.enableHttpsTrafficOnly = true
 			}
 		case CreatePrivateEndpointField:
 			if strings.EqualFold(v, TrueValue) {
-				AccOptions.CreatePrivateEndpoint = true
+				BCParams.createPrivateEndpoint = true
 			}
 		case HNSEnabledField:
 			if strings.EqualFold(v, TrueValue) {
-				IsHnsEnabled := true
-				AccOptions.IsHnsEnabled = to.BoolPtr(IsHnsEnabled)
+				BCParams.isHnsEnabled = true
 			}
 		case EnableNFSV3Field:
 			if strings.EqualFold(v, TrueValue) {
-				EnableNfsV3 := true
-				AccOptions.EnableNfsV3 = to.BoolPtr(EnableNfsV3)
+				BCParams.enableNfsV3 = true
 			}
 		case EnableLargeFileSharesField:
 			if strings.EqualFold(v, TrueValue) {
-				AccOptions.EnableLargeFileShare = true
+				BCParams.enableLargeFileShare = true
 			}
 		}
 	}
-	BCParams.accOptions = AccOptions
 	if BCParams.bucketUnitType == constant.StorageAccount {
 		return BCParams, nil
 	} else {
@@ -290,4 +307,19 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 		}
 	}
 	return BACParams, nil
+}
+
+func getAccountOptions(params *BucketClassParameters) *azure.AccountOptions {
+	options := &azure.AccountOptions{
+		Type:                      params.storageAccountType,
+		Kind:                      params.kind.String(),
+		Tags:                      params.tags,
+		VirtualNetworkResourceIDs: params.virtualNetworkResourceIDs,
+		EnableHTTPSTrafficOnly:    params.enableHttpsTrafficOnly,
+		CreatePrivateEndpoint:     params.createPrivateEndpoint,
+		IsHnsEnabled:              to.BoolPtr(params.isHnsEnabled),
+		EnableNfsV3:               to.BoolPtr(params.enableNfsV3),
+		EnableLargeFileShare:      params.enableLargeFileShare,
+	}
+	return options
 }

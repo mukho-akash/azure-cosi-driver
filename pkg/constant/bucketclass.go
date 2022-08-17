@@ -23,6 +23,7 @@ const (
 type BucketUnitType int
 type AccessTier int
 type SKU int
+type Kind int
 
 const (
 	Container BucketUnitType = iota
@@ -40,6 +41,14 @@ const (
 	Standard_GRS
 	Standard_RAGRS
 	Premium_LRS
+)
+
+const (
+	StorageV2 Kind = iota
+	Storage
+	BlobStorage
+	BlockBlobStorage
+	FileStorage
 )
 
 func (s SKU) String() string {
@@ -64,6 +73,22 @@ func (a AccessTier) String() string {
 		return "cool"
 	case Archive:
 		return "archive"
+	}
+	return "unknown"
+}
+
+func (a Kind) String() string {
+	switch a {
+	case StorageV2:
+		return "StorageV2"
+	case Storage:
+		return "Storage"
+	case BlobStorage:
+		return "BlobStorage"
+	case BlockBlobStorage:
+		return "BlockBlobStorage"
+	case FileStorage:
+		return "FileStorage"
 	}
 	return "unknown"
 }
