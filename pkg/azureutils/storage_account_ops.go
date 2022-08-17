@@ -15,7 +15,12 @@ package azureutils
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
+	"github.com/Azure/go-autorest/autorest/to"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
@@ -32,4 +37,25 @@ func createStorageAccountBucket(ctx context.Context,
 	bucketName string,
 	parameters *BucketClassParameters,
 	cloud *azure.Cloud) (string, error) {
+	accName, _, err := cloud.EnsureStorageAccount(ctx, parameters.accOptions, "")
+	if err != nil {
+		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %w", err))
+	}
+	postCreationTags := make(map[string]*string)
+	if parameters.enableBlobVersioning {
+		postCreationTags["EnableBlobVersioning"] = to.StringPtr(TrueValue)
+	}
+	if parameters.enableBlobDeleteRetention {
+		postCreationTags["EnableBlobDeleteRetention"] = to.StringPtr(TrueValue)
+		postCreationTags["BlobDeleteRetentionDays"] = to.StringPtr(strconv.FormatInt(10, parameters.blobDeleteRetentionDays))
+	}
+	if parameters.enableContainerDeleteRetention {
+		postCreationTags["EnableContainerDeleteRetention"] = to.StringPtr(TrueValue)
+		postCreationTags["ContainerDeleteRetentionDays"] = to.StringPtr(strconv.FormatInt(10, parameters.containerDeleteRetentionDays))
+	}
+	rerr := cloud.AddStorageAccountTags(ctx, parameters.accOptions.SubscriptionID, parameters.resourceGroup, accName, postCreationTags)
+	if err != nil {
+		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %w", rerr.Error()))
+	}
+	return accName, nil
 }

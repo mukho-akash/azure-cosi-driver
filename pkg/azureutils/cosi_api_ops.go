@@ -31,6 +31,7 @@ type BucketClassParameters struct {
 	blobDeleteRetentionDays        int
 	enableContainerDeleteRetention bool
 	containerDeleteRetentionDays   int
+	accOptions                     *azure.AccountOptions
 }
 
 type BucketAccessClassParameters struct {
@@ -52,9 +53,9 @@ func CreateBucket(ctx context.Context,
 	}
 
 	if bucketClassParams.bucketUnitType == constant.Container {
-		return createContainerBucket(ctx, bucketName, &bucketClassParams, cloud)
+		return createContainerBucket(ctx, bucketName, bucketClassParams, cloud)
 	} else {
-		return createStorageAccountBucket(ctx, bucketName, &bucketClassParams, cloud)
+		return createStorageAccountBucket(ctx, bucketName, bucketClassParams, cloud)
 	}
 }
 
@@ -80,7 +81,7 @@ func DeleteBucket(ctx context.Context,
 	return err
 }
 
-func parseBucketClassParameters(parameters map[string]string) (*BucketClassParameters, *azure.AccountOptions, error) {
+func parseBucketClassParameters(parameters map[string]string) (*BucketClassParameters, error) {
 	BCParams := &BucketClassParameters{}
 	AccOptions := &azure.AccountOptions{}
 	for k, v := range parameters {
@@ -95,7 +96,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			case "storageaccount":
 				BCParams.bucketUnitType = constant.StorageAccount
 			default:
-				return nil, nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
 			}
 		case constant.CreateBucketField:
 			if strings.EqualFold(v, TrueValue) {
@@ -123,7 +124,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			case constant.Archive.String():
 				BCParams.accessTier = constant.Archive
 			default:
-				return nil, nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
 			}
 		case constant.SKUNameField:
 			switch strings.ToLower(v) {
@@ -136,7 +137,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			case strings.ToLower(constant.Premium_LRS.String()):
 				BCParams.SKUName = constant.Premium_LRS
 			default:
-				return nil, nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
 			}
 		case constant.ResourceGroupField:
 			BCParams.resourceGroup = v
@@ -167,7 +168,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 		case constant.BlobDeleteRetentionDaysField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, nil, status.Error(codes.InvalidArgument, err.Error())
+				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
 			BCParams.blobDeleteRetentionDays = days
 		case constant.EnableContainerDeleteRetentionField:
@@ -179,7 +180,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 		case constant.ContainerDeleteRetentionDaysField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
-				return nil, nil, status.Error(codes.InvalidArgument, err.Error())
+				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
 			BCParams.containerDeleteRetentionDays = days
 		case StorageAccountTypeField: //Account Options Variables
@@ -189,7 +190,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 		case TagsField:
 			tags, err := ConvertTagsToMap(v)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			AccOptions.Tags = tags
 		case VNResourceIdsField:
@@ -218,15 +219,16 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 		}
 	}
+	BCParams.accOptions = AccOptions
 	if BCParams.bucketUnitType == constant.StorageAccount {
-		return BCParams, AccOptions, nil
+		return BCParams, nil
 	} else {
-		return BCParams, nil, nil
+		return BCParams, nil
 	}
 }
 
-func parseBucketAccessClassParameters(parameters map[string]string) (BucketAccessClassParameters, error) {
-	BACParams := BucketAccessClassParameters{}
+func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAccessClassParameters, error) {
+	BACParams := &BucketAccessClassParameters{}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {
 		case constant.BucketUnitTypeField:
@@ -239,7 +241,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (BucketAcces
 			case "storageaccount":
 				BACParams.bucketUnitType = constant.StorageAccount
 			default:
-				return BucketAccessClassParameters{}, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
+				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
 			}
 		case constant.RegionField:
 			BACParams.region = v
@@ -273,7 +275,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (BucketAcces
 		case constant.SignedExpiryField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
-				return BACParams, status.Error(codes.InvalidArgument, err.Error())
+				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
 			BACParams.signedExpiry = days
 		case constant.SignedResourceTypeField:
