@@ -37,7 +37,7 @@ func createStorageAccountBucket(ctx context.Context,
 	cloud *azure.Cloud) (string, error) {
 	accName, _, err := cloud.EnsureStorageAccount(ctx, getAccountOptions(parameters), "")
 	if err != nil {
-		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %w", err))
+		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
 	return accName, nil
 }
