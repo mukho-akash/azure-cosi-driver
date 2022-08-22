@@ -97,9 +97,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 		case constant.BucketUnitTypeField:
 			//determine unit type and set to container as default if blank
 			switch strings.ToLower(v) {
-			case "container":
-				BCParams.bucketUnitType = constant.Container
-			case "":
+			case "container", "":
 				BCParams.bucketUnitType = constant.Container
 			case "storageaccount":
 				BCParams.bucketUnitType = constant.StorageAccount
