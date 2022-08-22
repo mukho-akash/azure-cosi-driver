@@ -96,15 +96,13 @@ func (pr *provisioner) DriverCreateBucket(
 			bucketParams = make(map[string]string)
 		}
 		if reflect.DeepEqual(bucketParams, parameters) {
-			return &spec.ProvisionerCreateBucketResponse{
+			return &spec.DriverCreateBucketResponse{
 				BucketId: currBucket.bucketId,
 			}, nil
 		}
 
 		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("Bucket %s exists with different parameters", bucketName))
 	}
-
-	storageAccountName := azureBlob.StorageAccount
 
 	bucketId, err := azureutils.CreateBucket(ctx, bucketName, parameters, pr.cloud)
 	if err != nil {
