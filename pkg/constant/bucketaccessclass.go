@@ -8,7 +8,6 @@ const (
 	SignedResourceTypeField = "signedresourcetype"
 )
 
-//defining enums
 type SignedResourceType int
 type SignedPermissions int
 
