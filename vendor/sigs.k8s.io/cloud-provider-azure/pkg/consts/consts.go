@@ -19,9 +19,7 @@ package consts
 import (
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-02-01/storage"
-
-	"k8s.io/component-base/featuregate"
+	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-09-01/storage"
 )
 
 const (
@@ -72,10 +70,6 @@ const (
 	DefaultDiskMBpsReadWrite = 100
 
 	DiskEncryptionSetIDFormat = "/subscriptions/{subs-id}/resourceGroups/{rg-name}/providers/Microsoft.Compute/diskEncryptionSets/{diskEncryptionSet-name}"
-
-	// IPv6DualStack is here to avoid having to import features pkg
-	// and violate import rules
-	IPv6DualStack featuregate.Feature = "IPv6DualStack"
 
 	// MachineIDTemplate is the template of the virtual machine
 	MachineIDTemplate = "/subscriptions/%s/resourceGroups/%s/providers/Microsoft.Compute/virtualMachines/%s"
@@ -143,6 +137,13 @@ const (
 	VMASKey = "k8svmasKey"
 	// AvailabilitySetNodesKey is the availability set nodes key
 	AvailabilitySetNodesKey = "k8sAvailabilitySetNodesKey"
+
+	// VmssFlexKey is the key when querying vmssFlexVM cache
+	VmssFlexKey = "k8sVmssFlexKey"
+
+	// GetNodeVmssFlexIDLockKey is the key for getting the lock for getNodeVmssFlexID function
+	GetNodeVmssFlexIDLockKey = "k8sGetNodeVmssFlexIDLockKey"
+
 	// AvailabilitySetNodesCacheTTLDefaultInSeconds is the TTL of the availabilitySet node cache
 	AvailabilitySetNodesCacheTTLDefaultInSeconds = 900
 	// VMSSCacheTTLDefaultInSeconds is the TTL of the vmss cache
@@ -151,6 +152,13 @@ const (
 	VMSSVirtualMachinesCacheTTLDefaultInSeconds = 600
 	// VMASCacheTTLDefaultInSeconds is the TTL of the vmas cache
 	VMASCacheTTLDefaultInSeconds = 600
+
+	// VmssFlexCacheTTLDefaultInSeconds is the TTL of the vmss flex cache
+	VmssFlexCacheTTLDefaultInSeconds = 600
+	// VmssFlexVMCacheTTLInSeconds is the TTL of the vmss flex vm cache
+	VmssFlexVMCacheTTLInSeconds = 600
+	// VmssFlexVMStatusCacheTTLInSeconds is the TTL of the vmss flex vm status cache
+	VmssFlexVMStatusCacheTTLInSeconds = 600
 
 	// ZoneFetchingInterval defines the interval of performing zoneClient.GetZones
 	ZoneFetchingInterval = 30 * time.Minute
