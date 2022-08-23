@@ -28,7 +28,7 @@ func DeleteStorageAccount(
 	cloud *azure.Cloud) error {
 	SAClient := cloud.StorageAccountClient
 	err := SAClient.Delete(ctx, cloud.SubscriptionID, cloud.ResourceGroup, account)
-	return err.RawError
+	return err.Error()
 }
 
 func createStorageAccountBucket(ctx context.Context,
