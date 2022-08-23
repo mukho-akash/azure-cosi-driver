@@ -399,8 +399,6 @@ k8s.io/apimachinery/pkg/version
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/json
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/apiserver v0.24.3
-## explicit; go 1.16
 # k8s.io/client-go v0.24.3
 ## explicit; go 1.16
 k8s.io/client-go/applyconfigurations/admissionregistration/v1
@@ -705,6 +703,7 @@ sigs.k8s.io/cloud-provider-azure/pkg/azureclients/securitygroupclient/mocksecuri
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/snapshotclient
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/snapshotclient/mocksnapshotclient
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/storageaccountclient
+sigs.k8s.io/cloud-provider-azure/pkg/azureclients/storageaccountclient/mockstorageaccountclient
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/subnetclient
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/subnetclient/mocksubnetclient
 sigs.k8s.io/cloud-provider-azure/pkg/azureclients/virtualnetworklinksclient
