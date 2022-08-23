@@ -3,13 +3,13 @@ module project/azure-cosi-driver
 go 1.18
 
 require (
-	github.com/Azure/azure-storage-blob-go v0.13.0
+	github.com/Azure/azure-storage-blob-go v0.15.0
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	google.golang.org/grpc v1.40.0
 	k8s.io/client-go v0.24.3
 	k8s.io/klog v1.0.0
-	k8s.io/klog/v2 v2.60.1
-	sigs.k8s.io/cloud-provider-azure v1.24.4
+	k8s.io/klog/v2 v2.70.1
+	sigs.k8s.io/cloud-provider-azure v1.24.1-0.20220816050707-d9b89f161e76
 	sigs.k8s.io/container-object-storage-interface-spec v0.0.0-20220804173401-3154aa8927e3
 )
 
@@ -18,7 +18,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v65.0.0+incompatible // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.28 // indirect
-	github.com/Azure/go-autorest/autorest/adal v0.9.20 // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.21 // indirect
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/mocks v0.4.2 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
@@ -43,7 +43,7 @@ require (
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.1.2 // indirect
+	github.com/google/uuid v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

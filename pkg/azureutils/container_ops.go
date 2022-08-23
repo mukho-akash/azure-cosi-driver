@@ -33,40 +33,28 @@ var (
 	storageAccountRE = regexp.MustCompile(`https://(.+).blob.core.windows.net/([^/]*)/?(.*)`)
 )
 
-func CreateBucket(
+func createContainerBucket(
 	ctx context.Context,
-	storageAccount string,
-	containerName string,
-	parameters map[string]string,
+	bucketName string,
+	parameters *BucketClassParameters,
 	cloud *azure.Cloud) (string, error) {
-
-	options, err := parseParametersForStorageAccount(parameters, cloud)
+	accOptions := getAccountOptions(parameters)
+	_, key, err := cloud.EnsureStorageAccount(ctx, accOptions, "")
 	if err != nil {
-		return "", status.Error(codes.Unknown, fmt.Sprintf("Error parsing parameters : %v", err))
+		return "", status.Error(codes.Internal, fmt.Sprintf("Could not ensure storage account %s exists: %v", accOptions.Name, err))
 	}
-
-	options.Name = storageAccount
-	options.ResourceGroup = cloud.ResourceGroup
-	options.CreateAccount = true
-
-	// Check and create StorageAccount here
-	accountName, accessKey, err := cloud.EnsureStorageAccount(options, "")
-	if err != nil {
-		return "", status.Error(codes.Unknown, fmt.Sprintf("Error creating storage account with name %s : %v", storageAccount, err))
-	}
-
-	// Once storage account is created, we create the azure container inside the storage account
-	return createAzureContainer(ctx, accountName, accessKey, containerName, parameters)
+	containerParams := make(map[string]string) //NOTE: Container parameters still need to be filled/implemented
+	return createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
 }
 
-func DeleteBucket(
+func DeleteContainerBucket(
 	ctx context.Context,
 	bucketId string,
 	cloud *azure.Cloud) error {
 	// Get storage account name from bucketId
 	storageAccountName := getStorageAccountNameFromContainerUrl(bucketId)
 	// Get access keys for the storage account
-	accessKey, err := cloud.GetStorageAccesskey(storageAccountName, cloud.ResourceGroup)
+	accessKey, err := cloud.GetStorageAccesskey(ctx, cloud.SubscriptionID, storageAccountName, cloud.ResourceGroup)
 	if err != nil {
 		return err
 	}
@@ -82,12 +70,12 @@ func DeleteBucket(
 }
 
 func getStorageAccountNameFromContainerUrl(containerUrl string) string {
-	storageAccountName, _, _ := parseContainerUrl(containerUrl)
+	storageAccountName, _, _ := parsecontainerurl(containerUrl)
 	return storageAccountName
 }
 
 func getContainerNameFromContainerUrl(containerUrl string) string {
-	_, containerName, _ := parseContainerUrl(containerUrl)
+	_, containerName, _ := parsecontainerurl(containerUrl)
 	return containerName
 }
 
@@ -133,7 +121,7 @@ func createContainerUrl(
 
 }
 
-func parseContainerUrl(containerUrl string) (string, string, string) {
+func parsecontainerurl(containerUrl string) (string, string, string) {
 	matches := storageAccountRE.FindStringSubmatch(containerUrl)
 	storageAccount := matches[1]
 	containerName := matches[2]

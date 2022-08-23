@@ -69,7 +69,7 @@ func NewProvisionerServer(
 func (pr *provisioner) DriverCreateBucket(
 	ctx context.Context,
 	req *spec.DriverCreateBucketRequest) (*spec.DriverCreateBucketResponse, error) {
-	protocol := req.GetProtocol()
+	/* protocol := req.GetProtocol()
 	if protocol == nil {
 		return nil, status.Error(codes.InvalidArgument, "Protocol is nil")
 	}
@@ -77,12 +77,12 @@ func (pr *provisioner) DriverCreateBucket(
 	azureBlob := protocol.GetAzureBlob()
 	if azureBlob == nil {
 		return nil, status.Error(codes.InvalidArgument, "Azure blob protocol is missing")
-	}
+	}*/
 
 	bucketName := req.GetName()
 	parameters := req.GetParameters()
 	if parameters == nil {
-		parameters = make(map[string]string)
+		return nil, status.Error(codes.InvalidArgument, "Parameters missing. Cannot initialize Azure bucket.")
 	}
 
 	// Check if a bucket with these set of values exist in the namesToBucketMap
@@ -96,7 +96,7 @@ func (pr *provisioner) DriverCreateBucket(
 			bucketParams = make(map[string]string)
 		}
 		if reflect.DeepEqual(bucketParams, parameters) {
-			return &spec.ProvisionerCreateBucketResponse{
+			return &spec.DriverCreateBucketResponse{
 				BucketId: currBucket.bucketId,
 			}, nil
 		}
@@ -104,9 +104,7 @@ func (pr *provisioner) DriverCreateBucket(
 		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("Bucket %s exists with different parameters", bucketName))
 	}
 
-	storageAccountName := azureBlob.StorageAccount
-
-	bucketId, err := azureutils.CreateBucket(ctx, storageAccountName, bucketName, parameters, pr.cloud)
+	bucketId, err := azureutils.CreateBucket(ctx, bucketName, parameters, pr.cloud)
 	if err != nil {
 		return nil, err
 	}
@@ -130,14 +128,14 @@ func (pr *provisioner) DriverCreateBucket(
 func (pr *provisioner) DriverDeleteBucket(
 	ctx context.Context,
 	req *spec.DriverDeleteBucketRequest) (*spec.DriverDeleteBucketResponse, error) {
-	bucketId := req.GetBucketId()
-	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketId)
+	//determine if the bucket is an account or a blob container
+	bucketId := req.BucketId
 	err := azureutils.DeleteBucket(ctx, bucketId, pr.cloud)
-
 	if err != nil {
 		return nil, err
 	}
 
+	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketId)
 	if bucketName, ok := pr.bucketIdToNameMap[bucketId]; ok {
 		// Remove from the namesToBucketMap
 		pr.bucketsLock.RLock()
