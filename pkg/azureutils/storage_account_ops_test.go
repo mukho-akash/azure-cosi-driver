@@ -36,7 +36,7 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 
 	cl.EXPECT().
 		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccount)).
-		Return(retry.GetError(&http.Response{}, nil)).
+		Return(nil).
 		AnyTimes()
 
 	cl.EXPECT().
@@ -60,6 +60,16 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 		Return(accountList, nil).
 		AnyTimes()
 
+	cl.EXPECT().
+		ListKeys(gomock.Any(), gomock.Any(), gomock.Any(), constant.ValidAccount).
+		Return(storage.AccountListKeysResult{Keys: keyList}, nil).
+		AnyTimes()
+
+	cl.EXPECT().
+		ListKeys(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Not(constant.ValidAccount)).
+		Return(storage.AccountListKeysResult{Keys: keyList}, nil).
+		AnyTimes()
+
 	return cl
 }
 
@@ -72,7 +82,7 @@ func TestDeleteStorageAccount(t *testing.T) {
 		{
 			testName:    "Valid Account",
 			account:     constant.ValidAccount,
-			expectedErr: retry.GetError(&http.Response{}, nil).Error(),
+			expectedErr: nil,
 		},
 		{
 			testName:    "Invalid Account",
@@ -94,7 +104,7 @@ func TestDeleteStorageAccount(t *testing.T) {
 	}
 }
 
-/*func TestCreateStorageAccountBucket(t *testing.T) {
+func TestCreateStorageAccountBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
 		account     string
@@ -103,12 +113,18 @@ func TestDeleteStorageAccount(t *testing.T) {
 		{
 			testName:    "Valid Account",
 			account:     constant.ValidAccount,
-			expectedErr: retry.GetError(&http.Response{}, nil).Error(),
+			expectedErr: nil,
+		},
+		{
+			testName:    "Invalid Account",
+			account:     constant.InvalidAccount,
+			expectedErr: nil,
 		},
 	}
 	ctrl := gomock.NewController(t)
 	cloud := azure.GetTestCloud(ctrl)
 	keyList := make([]storage.AccountKey, 0)
+	keyList = append(keyList, storage.AccountKey{KeyName: to.StringPtr(constant.ValidAccount), Value: to.StringPtr("val")})
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
@@ -116,8 +132,8 @@ func TestDeleteStorageAccount(t *testing.T) {
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
 		}
-		if !reflect.DeepEqual(err, test.account) {
+		if !reflect.DeepEqual(accName, test.account) {
 			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.account, accName)
 		}
 	}
-}*/
+}
