@@ -15,6 +15,7 @@ package azureutils
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
@@ -67,7 +68,7 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 
 	cl.EXPECT().
 		ListKeys(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Not(constant.ValidAccount)).
-		Return(storage.AccountListKeysResult{Keys: keyList}, nil).
+		Return(storage.AccountListKeysResult{Keys: keyList}, retry.GetError(&http.Response{}, fmt.Errorf("Invalid Account"))).
 		AnyTimes()
 
 	return cl
@@ -116,9 +117,10 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			testName:    "Invalid Account",
-			account:     constant.InvalidAccount,
-			expectedErr: nil,
+			testName: "Invalid Account",
+			account:  constant.InvalidAccount,
+			expectedErr: status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v",
+				fmt.Errorf("could not get storage key for storage account "+constant.InvalidAccount+": "+retry.GetError(&http.Response{}, fmt.Errorf("Invalid Account")).Error().Error()))),
 		},
 	}
 	ctrl := gomock.NewController(t)
@@ -132,7 +134,7 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
 		}
-		if !reflect.DeepEqual(accName, test.account) {
+		if err == nil && !reflect.DeepEqual(accName, test.account) {
 			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.account, accName)
 		}
 	}
