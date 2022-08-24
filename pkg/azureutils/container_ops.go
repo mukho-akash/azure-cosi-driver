@@ -52,14 +52,14 @@ func DeleteContainerBucket(
 	bucketId string,
 	cloud *azure.Cloud) error {
 	// Get storage account name from bucketId
-	storageAccountName := getStorageAccountNameFromContainerUrl(bucketId)
+	storageAccountName := getStorageAccountNameFromContainerURL(bucketId)
 	// Get access keys for the storage account
 	accessKey, err := cloud.GetStorageAccesskey(ctx, cloud.SubscriptionID, storageAccountName, cloud.ResourceGroup)
 	if err != nil {
 		return err
 	}
 
-	containerName := getContainerNameFromContainerUrl(bucketId)
+	containerName := getContainerNameFromContainerURL(bucketId)
 	err = deleteAzureContainer(ctx, storageAccountName, accessKey, containerName)
 	if err != nil {
 		return fmt.Errorf("Error deleting container %s in storage account %s : %v", containerName, storageAccountName, err)
@@ -69,12 +69,12 @@ func DeleteContainerBucket(
 	return nil
 }
 
-func getStorageAccountNameFromContainerUrl(containerUrl string) string {
+func getStorageAccountNameFromContainerURL(containerUrl string) string {
 	storageAccountName, _, _ := parsecontainerurl(containerUrl)
 	return storageAccountName
 }
 
-func getContainerNameFromContainerUrl(containerUrl string) string {
+func getContainerNameFromContainerURL(containerUrl string) string {
 	_, containerName, _ := parsecontainerurl(containerUrl)
 	return containerName
 }
@@ -84,7 +84,7 @@ func deleteAzureContainer(
 	storageAccount,
 	accessKey,
 	containerName string) error {
-	containerUrl, err := createContainerUrl(storageAccount, accessKey, containerName)
+	containerUrl, err := createContainerURL(storageAccount, accessKey, containerName)
 
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func deleteAzureContainer(
 	return err
 }
 
-func createContainerUrl(
+func createContainerURL(
 	storageAccount string,
 	accessKey string,
 	containerName string) (azblob.ContainerURL, error) {
@@ -139,7 +139,7 @@ func createAzureContainer(
 		return "", fmt.Errorf("Invalid storage account or access key")
 	}
 
-	containerURL, err := createContainerUrl(storageAccount, accessKey, containerName)
+	containerURL, err := createContainerURL(storageAccount, accessKey, containerName)
 	if err != nil {
 		return "", err
 	}

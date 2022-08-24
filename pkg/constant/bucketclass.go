@@ -37,10 +37,10 @@ const (
 )
 
 const (
-	Standard_LRS SKU = iota
-	Standard_GRS
-	Standard_RAGRS
-	Premium_LRS
+	StandardLRS SKU = iota
+	StandardGRS
+	StandardRAGRS
+	PremiumLRS
 )
 
 const (
@@ -53,13 +53,13 @@ const (
 
 func (s SKU) String() string {
 	switch s {
-	case Standard_LRS:
+	case StandardLRS:
 		return "Standard_LRS"
-	case Standard_GRS:
+	case StandardGRS:
 		return "Standard_GRS"
-	case Standard_RAGRS:
+	case StandardRAGRS:
 		return "Standard_RAGRS"
-	case Premium_LRS:
+	case PremiumLRS:
 		return "Premium_LRS"
 	}
 	return "unknown"
