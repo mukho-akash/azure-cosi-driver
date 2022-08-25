@@ -51,6 +51,16 @@ const (
 	FileStorage
 )
 
+func (b BucketUnitType) String() string {
+	switch b {
+	case Container:
+		return "container"
+	case StorageAccount:
+		return "storageaccount"
+	}
+	return "unknown"
+}
+
 func (s SKU) String() string {
 	switch s {
 	case StandardLRS:
