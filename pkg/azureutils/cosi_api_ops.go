@@ -310,7 +310,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 func getAccountOptions(params *BucketClassParameters) *azure.AccountOptions {
 	options := &azure.AccountOptions{
 		Name:                      params.storageAccountName,
-		ResourceGroup:             params.region,
+		ResourceGroup:             params.resourceGroup,
 		Location:                  params.region,
 		Type:                      params.storageAccountType,
 		Kind:                      params.kind.String(),
