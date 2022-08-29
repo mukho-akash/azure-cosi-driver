@@ -970,11 +970,8 @@ rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30/go.mod h1:fEO7lRTdivWO2qYVCVG7dEADOMo/MLDCVr8So2g88Uw=
 sigs.k8s.io/cloud-provider-azure v1.24.1-0.20220816050707-d9b89f161e76 h1:Us33M8wFuV0vwDGczEXq10IPFFT+Xqnf99pNlzkPJVE=
 sigs.k8s.io/cloud-provider-azure v1.24.1-0.20220816050707-d9b89f161e76/go.mod h1:KRSedLdzH6Y6wuqQRf3UdRj5hHv9NtTNxsokyuVE87w=
-<<<<<<< HEAD
-=======
 sigs.k8s.io/cloud-provider-azure v1.24.4 h1:jnfLl6uJxSM/0b2hQ36f1aqzxli4PllDJzMiOqmoLnc=
 sigs.k8s.io/cloud-provider-azure v1.24.4/go.mod h1:Z9fXUbebDtK7IZedz1gwDlPb5ik9+c75Paiumv7ftQU=
->>>>>>> main
 sigs.k8s.io/container-object-storage-interface-spec v0.0.0-20220804173401-3154aa8927e3 h1:rIQHvH08W4Q887mQs1BCQWf32MYkQJNER3ZvxGjL6sc=
 sigs.k8s.io/container-object-storage-interface-spec v0.0.0-20220804173401-3154aa8927e3/go.mod h1:SzF/yVSh88TgYdBOAXqhT96XjU8pCQtoeQKxzIOOmWQ=
 sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 h1:kDi4JBNAsJWfz1aEXhO8Jg87JJaPNLh5tIzYHgStQ9Y=
