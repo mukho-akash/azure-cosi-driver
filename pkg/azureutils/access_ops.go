@@ -40,16 +40,16 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters Buck
 	}
 
 	permission := azblob.ContainerSASPermissions{}
-	if parameters.enableList == true {
+	if parameters.enableList {
 		permission.List = true
 	}
-	if parameters.enableRead == true {
+	if parameters.enableRead {
 		permission.Read = true
 	}
-	if parameters.enableWrite == true {
+	if parameters.enableWrite {
 		permission.Write = true
 	}
-	if parameters.enablePermanentDelete == true {
+	if parameters.enablePermanentDelete {
 		permission.DeletePreviousVersion = true
 	}
 
@@ -83,27 +83,27 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters Bucket
 	}
 
 	resources := azblob.AccountSASResourceTypes{}
-	if parameters.allowServiceSignedResourceType == true {
+	if parameters.allowServiceSignedResourceType {
 		resources.Service = true
 	}
-	if parameters.allowContainerSignedResourceType == true {
+	if parameters.allowContainerSignedResourceType {
 		resources.Container = true
 	}
-	if parameters.allowObjectSignedResourceType == true {
+	if parameters.allowObjectSignedResourceType {
 		resources.Object = true
 	}
 
 	permission := azblob.AccountSASPermissions{}
-	if parameters.enableList == true {
+	if parameters.enableList {
 		permission.List = true
 	}
-	if parameters.enableRead == true {
+	if parameters.enableRead {
 		permission.Read = true
 	}
-	if parameters.enableWrite == true {
+	if parameters.enableWrite {
 		permission.Write = true
 	}
-	if parameters.enablePermanentDelete == true {
+	if parameters.enablePermanentDelete {
 		permission.DeletePreviousVersion = true
 	}
 
