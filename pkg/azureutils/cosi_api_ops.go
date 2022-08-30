@@ -36,7 +36,7 @@ type BucketClassParameters struct {
 	kind                      constant.Kind
 	tags                      map[string]string
 	virtualNetworkResourceIDs []string
-	enableHttpsTrafficOnly    bool
+	enableHTTPSTrafficOnly    bool
 	createPrivateEndpoint     bool
 	isHnsEnabled              bool
 	enableNfsV3               bool
@@ -69,10 +69,10 @@ func CreateBucket(ctx context.Context,
 }
 
 func DeleteBucket(ctx context.Context,
-	bucketId string,
+	bucketID string,
 	cloud *azure.Cloud) error {
 	//determine if the bucket is an account or a blob container
-	account, container, blob := parsecontainerurl(bucketId)
+	account, container, blob := parsecontainerurl(bucketID)
 	if account == "" {
 		return status.Error(codes.InvalidArgument, "Storage Account required")
 	}
@@ -80,12 +80,12 @@ func DeleteBucket(ctx context.Context,
 		return status.Error(codes.InvalidArgument, "Individual Blobs unsupported. Please use Blob Containers or Storage Accounts instead.")
 	}
 
-	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketId)
+	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketID)
 	var err error
 	if container == "" { //container not present, deleting storage account
 		err = DeleteStorageAccount(ctx, account, cloud)
 	} else { //container name present, deleting container
-		err = DeleteContainerBucket(ctx, bucketId, cloud)
+		err = DeleteContainerBucket(ctx, bucketID, cloud)
 	}
 	return err
 }
@@ -97,9 +97,9 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 		case constant.BucketUnitTypeField:
 			//determine unit type and set to container as default if blank
 			switch strings.ToLower(v) {
-			case "container", "":
+			case constant.Container.String(), "":
 				BCParams.bucketUnitType = constant.Container
-			case "storageaccount":
+			case constant.StorageAccount.String():
 				BCParams.bucketUnitType = constant.StorageAccount
 			default:
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
@@ -133,14 +133,14 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 		case constant.SKUNameField:
 			switch strings.ToLower(v) {
-			case strings.ToLower(constant.Standard_LRS.String()):
-				BCParams.SKUName = constant.Standard_LRS
-			case strings.ToLower(constant.Standard_GRS.String()):
-				BCParams.SKUName = constant.Standard_GRS
-			case strings.ToLower(constant.Standard_RAGRS.String()):
-				BCParams.SKUName = constant.Standard_RAGRS
-			case strings.ToLower(constant.Premium_LRS.String()):
-				BCParams.SKUName = constant.Premium_LRS
+			case strings.ToLower(constant.StandardLRS.String()):
+				BCParams.SKUName = constant.StandardLRS
+			case strings.ToLower(constant.StandardGRS.String()):
+				BCParams.SKUName = constant.StandardGRS
+			case strings.ToLower(constant.StandardRAGRS.String()):
+				BCParams.SKUName = constant.StandardRAGRS
+			case strings.ToLower(constant.PremiumLRS.String()):
+				BCParams.SKUName = constant.PremiumLRS
 			default:
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Access Tier %s is unsupported", v))
 			}
@@ -215,7 +215,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			BCParams.virtualNetworkResourceIDs = strings.Split(v, TagsDelimiter)
 		case HTTPSTrafficOnlyField:
 			if strings.EqualFold(v, TrueValue) {
-				BCParams.enableHttpsTrafficOnly = true
+				BCParams.enableHTTPSTrafficOnly = true
 			}
 		case CreatePrivateEndpointField:
 			if strings.EqualFold(v, TrueValue) {
@@ -309,11 +309,14 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 
 func getAccountOptions(params *BucketClassParameters) *azure.AccountOptions {
 	options := &azure.AccountOptions{
+		Name:                      params.storageAccountName,
+		ResourceGroup:             params.resourceGroup,
+		Location:                  params.region,
 		Type:                      params.storageAccountType,
 		Kind:                      params.kind.String(),
 		Tags:                      params.tags,
 		VirtualNetworkResourceIDs: params.virtualNetworkResourceIDs,
-		EnableHTTPSTrafficOnly:    params.enableHttpsTrafficOnly,
+		EnableHTTPSTrafficOnly:    params.enableHTTPSTrafficOnly,
 		CreatePrivateEndpoint:     params.createPrivateEndpoint,
 		IsHnsEnabled:              to.BoolPtr(params.isHnsEnabled),
 		EnableNfsV3:               to.BoolPtr(params.enableNfsV3),
