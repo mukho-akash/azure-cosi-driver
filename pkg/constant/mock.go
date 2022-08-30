@@ -12,5 +12,6 @@ const (
 	ValidBlobURL       = "https://validaccount.blob.core.windows.net/validcontainer/validblob"
 	ValidContainerURL  = "https://validaccount.blob.core.windows.net/validcontainer"
 	ValidAccountURL    = "https://validaccount.blob.core.windows.net/"
+	ValidDriver        = "validdriver"
 	CloudDefaultURL    = "core.windows.net"
 )
