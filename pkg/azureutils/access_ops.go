@@ -2,7 +2,6 @@ package azureutils
 
 import (
 	"context"
-	"fmt"
 	"project/azure-cosi-driver/pkg/constant"
 	"time"
 
@@ -75,8 +74,7 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters Bucket
 	if err != nil {
 		return "", err
 	}
-	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net", account)
-	serviceClient, err := azblob.NewServiceClientWithSharedKey(serviceURL, cred, nil)
+	serviceClient, err := azblob.NewServiceClientWithSharedKey(bucketID, cred, nil)
 	if err != nil {
 		return "", err
 	}
