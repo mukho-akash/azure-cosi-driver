@@ -23,6 +23,7 @@ const (
 	TagKeyValueDelimiter = "="
 
 	TrueValue                  = "true"
+	FalseValue                 = "false"
 	StorageAccountTypeField    = "storageaccounttype"
 	LocationField              = "location"
 	KindField                  = "kind"
