@@ -164,7 +164,7 @@ func (pr *provisioner) DriverGrantBucketAccess(
 
 	return &spec.DriverGrantBucketAccessResponse{
 		AccountId: accountID,
-		Credentials: map[string]*spec.CredentialDetails{constant.CredentialType: &spec.CredentialDetails{
+		Credentials: map[string]*spec.CredentialDetails{constant.CredentialType: {
 			Secrets: map[string]string{constant.SASURL: sas},
 		}},
 	}, nil
