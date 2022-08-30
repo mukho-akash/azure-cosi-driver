@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"project/azure-cosi-driver/pkg/azureutils"
+	"project/azure-cosi-driver/pkg/constant"
 	"reflect"
 	"sync"
 
@@ -150,7 +151,23 @@ func (pr *provisioner) DriverDeleteBucket(
 func (pr *provisioner) DriverGrantBucketAccess(
 	ctx context.Context,
 	req *spec.DriverGrantBucketAccessRequest) (*spec.DriverGrantBucketAccessResponse, error) {
-	return &spec.DriverGrantBucketAccessResponse{}, nil
+	bucketID := req.GetBucketId()
+	parameters := req.GetParameters()
+	if parameters == nil {
+		return nil, status.Error(codes.InvalidArgument, "Parameters missing. Cannot initialize Azure bucket.")
+	}
+
+	sas, accountID, err := azureutils.CreateBucketSASURL(ctx, bucketID, parameters)
+	if err != nil {
+		return nil, err
+	}
+
+	return &spec.DriverGrantBucketAccessResponse{
+		AccountId: accountID,
+		Credentials: map[string]*spec.CredentialDetails{constant.CredentialType: &spec.CredentialDetails{
+			Secrets: map[string]string{constant.SASURL: sas},
+		}},
+	}, nil
 }
 
 func (pr *provisioner) DriverRevokeBucketAccess(
