@@ -59,7 +59,7 @@ type BucketAccessClassParameters struct {
 	signedversion                    string
 	signedIP                         string
 	signedExpiry                     int
-	signedStart                      time.Time
+	signedStart                      *time.Time
 	signedProtocol                   string
 	enableList                       bool
 	enableRead                       bool
@@ -293,7 +293,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			if err != nil {
 				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
-			BACParams.signedStart = date
+			BACParams.signedStart = &date
 		case constant.SignedExpiryField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
