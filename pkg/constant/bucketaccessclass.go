@@ -14,4 +14,5 @@ const (
 	AllowServiceSignedResourceTypeField   = "allowservicesignedresourcetypefield"
 	AllowContainerSignedResourceTypeField = "allowcontainersignedresourcetypefield"
 	AllowObjectSignedResourceTypeField    = "allowobjectsignedresourcetypefield"
+	KeyField                              = "key"
 )

@@ -69,6 +69,7 @@ type BucketAccessClassParameters struct {
 	allowServiceSignedResourceType   bool
 	allowContainerSignedResourceType bool
 	allowObjectSignedResourceType    bool
+	key                              string
 }
 
 func CreateBucket(ctx context.Context,
@@ -357,6 +358,8 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			} else if strings.EqualFold(v, FalseValue) {
 				BACParams.allowObjectSignedResourceType = false
 			}
+		case constant.KeyField:
+			BACParams.key = v
 		}
 	}
 	return BACParams, nil
