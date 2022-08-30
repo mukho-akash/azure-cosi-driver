@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"project/azure-cosi-driver/pkg/constant"
 
@@ -43,13 +44,30 @@ type BucketClassParameters struct {
 	enableLargeFileShare      bool
 }
 
+/*
+signed expiry is done in days in reference to start, while signed start is written as a date
+start should be written in ISO 8601 UTC. default will be the immediate time/date
+YYYY-MM-DD
+YYYY-MM-DDThh:mm<TZDSuffix>
+YYYY-MM-DDThh:mm:ss<TZDSuffix>
+*/
 type BucketAccessClassParameters struct {
-	bucketUnitType    constant.BucketUnitType
-	region            string
-	signedversion     string
-	signedPermissions constant.SignedPermissions
-	signedExpiry      int
-	signedResouceType constant.SignedResourceType
+	bucketUnitType                   constant.BucketUnitType
+	createBucket                     bool
+	createStorageAccount             bool
+	region                           string
+	signedversion                    string
+	signedIP                         string
+	signedExpiry                     int
+	signedStart                      time.Time
+	signedProtocol                   string
+	enableList                       bool
+	enableRead                       bool
+	enableWrite                      bool
+	enablePermanentDelete            bool
+	allowServiceSignedResourceType   bool
+	allowContainerSignedResourceType bool
+	allowObjectSignedResourceType    bool
 }
 
 func CreateBucket(ctx context.Context,
@@ -243,7 +261,15 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 }
 
 func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAccessClassParameters, error) {
-	BACParams := &BucketAccessClassParameters{}
+	//defaults
+	BACParams := &BucketAccessClassParameters{
+		signedExpiry:                     7,
+		enableRead:                       true,
+		enableList:                       true,
+		allowServiceSignedResourceType:   true,
+		allowContainerSignedResourceType: true,
+		allowObjectSignedResourceType:    true,
+	}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {
 		case constant.BucketUnitTypeField:
@@ -262,45 +288,59 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			BACParams.region = v
 		case constant.SignedVersionField:
 			BACParams.signedversion = v
-		case constant.SignedPermissionsField:
-			switch strings.ToLower(v) {
-			case constant.Read.String():
-				BACParams.signedPermissions = constant.Read
-			case constant.Add.String():
-				BACParams.signedPermissions = constant.Add
-			case constant.Create.String():
-				BACParams.signedPermissions = constant.Create
-			case constant.Write.String():
-				BACParams.signedPermissions = constant.Write
-			case constant.Delete.String():
-				BACParams.signedPermissions = constant.Delete
-			case constant.ReadWrite.String():
-				BACParams.signedPermissions = constant.ReadWrite
-			case constant.AddDelete.String():
-				BACParams.signedPermissions = constant.AddDelete
-			case constant.List.String():
-				BACParams.signedPermissions = constant.List
-			case constant.DeleteVersion.String():
-				BACParams.signedPermissions = constant.Delete
-			case constant.PermanentDelete.String():
-				BACParams.signedPermissions = constant.PermanentDelete
-			case constant.All.String():
-				BACParams.signedPermissions = constant.All
+		case constant.SignedStartField:
+			date, err := time.Parse(time.RFC3339, v)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
+			BACParams.signedStart = date
 		case constant.SignedExpiryField:
 			days, err := strconv.Atoi(v)
 			if err != nil {
 				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
 			BACParams.signedExpiry = days
-		case constant.SignedResourceTypeField:
-			switch strings.ToLower(v) {
-			case constant.TypeObject.String():
-				BACParams.signedResouceType = constant.TypeObject
-			case constant.TypeContainer.String():
-				BACParams.signedResouceType = constant.TypeContainer
-			case constant.TypeObjectAndContainer.String():
-				BACParams.signedResouceType = constant.TypeObjectAndContainer
+		case constant.EnableListField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableList = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableList = false
+			}
+		case constant.EnableReadField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableRead = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableRead = false
+			}
+		case constant.EnableWriteField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableWrite = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableWrite = false
+			}
+		case constant.EnablePermanentDeleteField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enablePermanentDelete = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enablePermanentDelete = false
+			}
+		case constant.AllowServiceSignedResourceTypeField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.allowServiceSignedResourceType = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.allowServiceSignedResourceType = false
+			}
+		case constant.AllowContainerSignedResourceTypeField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.allowObjectSignedResourceType = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.allowObjectSignedResourceType = false
+			}
+		case constant.AllowObjectSignedResourceTypeField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.allowObjectSignedResourceType = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.allowObjectSignedResourceType = false
 			}
 		}
 	}
