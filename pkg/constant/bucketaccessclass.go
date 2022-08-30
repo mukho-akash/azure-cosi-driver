@@ -15,4 +15,5 @@ const (
 	AllowContainerSignedResourceTypeField = "allowcontainersignedresourcetypefield"
 	AllowObjectSignedResourceTypeField    = "allowobjectsignedresourcetypefield"
 	KeyField                              = "key"
+	SASURL                                = "sasurl"
 )
