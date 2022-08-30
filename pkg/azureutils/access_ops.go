@@ -2,6 +2,7 @@ package azureutils
 
 import (
 	"context"
+	"fmt"
 	"project/azure-cosi-driver/pkg/constant"
 	"time"
 
@@ -11,10 +12,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[string]string) (string, error) {
+//creates bucketSASURL and returns (SASURL, accountID, err)
+func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[string]string) (string, string, error) {
 	bucketAccessClassParams, err := parseBucketAccessClassParameters(parameters)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	switch bucketAccessClassParams.bucketUnitType {
@@ -23,18 +25,18 @@ func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[str
 	case constant.StorageAccount:
 		return createAccountSASURL(ctx, bucketID, *bucketAccessClassParams)
 	}
-	return "", status.Error(codes.InvalidArgument, "invalid bucket type")
+	return "", "", status.Error(codes.InvalidArgument, "invalid bucket type")
 }
 
-func createContainerSASURL(ctx context.Context, bucketID string, parameters BucketAccessClassParameters) (string, error) {
+func createContainerSASURL(ctx context.Context, bucketID string, parameters BucketAccessClassParameters) (string, string, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	containerClient, err := azblob.NewContainerClient(bucketID, cred, nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	permission := azblob.ContainerSASPermissions{}
@@ -62,21 +64,22 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters Buck
 
 	sasURL, err := containerClient.GetSASURL(permission, start, expiry)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return sasURL, nil
+	accountID := fmt.Sprintf("https://%s.blob.core.windows.net", getStorageAccountNameFromContainerURL(bucketID))
+	return sasURL, accountID, nil
 }
 
 //creates SAS and returns service client with sas
-func createAccountSASURL(ctx context.Context, bucketID string, parameters BucketAccessClassParameters) (string, error) {
+func createAccountSASURL(ctx context.Context, bucketID string, parameters BucketAccessClassParameters) (string, string, error) {
 	account := getStorageAccountNameFromContainerURL(bucketID)
 	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	serviceClient, err := azblob.NewServiceClientWithSharedKey(bucketID, cred, nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	resources := azblob.AccountSASResourceTypes{}
@@ -114,7 +117,7 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters Bucket
 	expiry := start.AddDate(0, 0, parameters.signedExpiry)
 	sasURL, err := serviceClient.GetSASURL(resources, permission, start, expiry)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return sasURL, nil
+	return sasURL, bucketID, nil
 }
