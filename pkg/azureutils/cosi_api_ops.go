@@ -332,17 +332,17 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			case 1:
 				start := net.ParseIP(iplist[0])
 				if start == nil {
-					klog.Warning("IP %s is an invalid ip, no range will be set", iplist[0])
+					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no range will be set", iplist[0]))
 				}
 				BACParams.signedIP = sdk.IPRange{Start: start}
 			case 2:
 				start := net.ParseIP(iplist[0])
 				end := net.ParseIP(iplist[1])
 				if start == nil {
-					klog.Warning("IP %s is an invalid ip, no range will be set", iplist[0])
+					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no range will be set", iplist[0]))
 				}
 				if end == nil {
-					klog.Warning("IP %s is an invalid ip, no end to the range will be set", iplist[0])
+					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no end to the range will be set", iplist[0]))
 				}
 				BACParams.signedIP = sdk.IPRange{Start: start, End: end}
 			}
