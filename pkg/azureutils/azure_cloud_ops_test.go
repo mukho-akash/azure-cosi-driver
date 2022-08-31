@@ -4,8 +4,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-
-	"sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
 func createTestFile(path string) error {
@@ -32,7 +30,6 @@ func TestGetAzureCloudProvider(t *testing.T) {
 		testName    string
 		kubeconfig  string
 		expectedErr error
-		expectedOut provider.Cloud
 	}{
 		/*{
 			testName:    "no kubeconfig, no credential file",
@@ -51,7 +48,7 @@ func TestGetAzureCloudProvider(t *testing.T) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}
 		if cloud == nil {
-			t.Errorf("return value of get cloud provider should not be nil even if there eis an error")
+			t.Errorf("return value of get cloud provider should not be nil even if there is an error")
 		} /* else if !reflect.DeepEqual(cloud.Environment.StorageEndpointSuffix, constant.CloudDefaultURL) {
 			t.Errorf("\nTestCase: %s\nExpected Output: %v\nActual Output: %v", test.testName, constant.CloudDefaultURL, cloud.Environment.StorageEndpointSuffix)
 		}*/
