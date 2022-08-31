@@ -161,7 +161,7 @@ func createAzureContainer(
 	return containerURL.String(), nil
 }
 
-func createContainerSASURL(ctx context.Context, bucketID string, parameters BucketAccessClassParameters) (string, string, error) {
+func createContainerSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return "", "", err
