@@ -47,7 +47,7 @@ func createStorageAccountBucket(ctx context.Context,
 	return accName, nil
 }
 
-//creates SAS and returns service client with sas
+// creates SAS and returns service client with sas
 func createAccountSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {
 	account := getStorageAccountNameFromContainerURL(bucketID)
 	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)

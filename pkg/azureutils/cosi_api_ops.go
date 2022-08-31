@@ -110,7 +110,7 @@ func DeleteBucket(ctx context.Context,
 	return err
 }
 
-//creates bucketSASURL and returns (SASURL, accountID, err)
+// creates bucketSASURL and returns (SASURL, accountID, err)
 func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[string]string) (string, string, error) {
 	bucketAccessClassParams, err := parseBucketAccessClassParameters(parameters)
 	if err != nil {

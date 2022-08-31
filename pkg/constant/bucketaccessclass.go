@@ -1,7 +1,7 @@
 package constant
 
 const (
-	//BucketAccessClassFields
+	// BucketAccessClassFields
 	SignedVersionField                    = "signedversion"
 	SignedExpiryField                     = "signedexpiry"
 	SignedIPField                         = "signedipfield"
