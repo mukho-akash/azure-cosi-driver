@@ -84,14 +84,8 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 		permission.DeletePreviousVersion = true
 	}
 
-	var start time.Time
-	if parameters.signedStart != nil {
-		start = *parameters.signedStart
-	} else {
-		start = time.Now()
-	}
-
-	expiry := start.AddDate(0, 0, parameters.signedExpiry)
+	start := time.Now()
+	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
 	sasURL, err := serviceClient.GetSASURL(resources, permission, start, expiry)
 	if err != nil {
 		return "", "", err

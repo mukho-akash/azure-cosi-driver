@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"project/azure-cosi-driver/pkg/constant"
 
@@ -59,8 +58,7 @@ type BucketAccessClassParameters struct {
 	region                           string
 	signedversion                    string
 	signedIP                         string
-	signedExpiry                     int
-	signedStart                      *time.Time
+	validationPeriod                 uint64
 	signedProtocol                   string
 	enableList                       bool
 	enableRead                       bool
@@ -280,8 +278,9 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 
 func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAccessClassParameters, error) {
 	//defaults
+	// validation period default = one week
 	BACParams := &BucketAccessClassParameters{
-		signedExpiry:                     7,
+		validationPeriod:                 604800000,
 		enableRead:                       true,
 		enableList:                       true,
 		allowServiceSignedResourceType:   true,
@@ -320,18 +319,12 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			BACParams.region = v
 		case constant.SignedVersionField:
 			BACParams.signedversion = v
-		case constant.SignedStartField:
-			date, err := time.Parse(time.RFC3339, v)
+		case constant.ValidationPeriodField:
+			msec, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
 				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
-			BACParams.signedStart = &date
-		case constant.SignedExpiryField:
-			days, err := strconv.Atoi(v)
-			if err != nil {
-				return nil, status.Error(codes.InvalidArgument, err.Error())
-			}
-			BACParams.signedExpiry = days
+			BACParams.validationPeriod = msec
 		case constant.EnableListField:
 			if strings.EqualFold(v, TrueValue) {
 				BACParams.enableList = true

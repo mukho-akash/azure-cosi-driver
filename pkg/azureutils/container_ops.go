@@ -186,14 +186,8 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters *Buc
 		permission.DeletePreviousVersion = true
 	}
 
-	var start time.Time
-	if parameters.signedStart != nil {
-		start = *parameters.signedStart
-	} else {
-		start = time.Now()
-	}
-
-	expiry := start.AddDate(0, 0, parameters.signedExpiry)
+	start := time.Now()
+	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
 
 	sasURL, err := containerClient.GetSASURL(permission, start, expiry)
 	if err != nil {

@@ -3,9 +3,8 @@ package constant
 const (
 	// BucketAccessClassFields
 	SignedVersionField                    = "signedversion"
-	SignedExpiryField                     = "signedexpiry"
+	ValidationPeriodField                 = "validationperiod"
 	SignedIPField                         = "signedipfield"
-	SignedStartField                      = "signedstart"
 	SignedProtocolField                   = "signedprotocol"
 	EnableListField                       = "enablelist"
 	EnableReadField                       = "enableread"
