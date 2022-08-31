@@ -72,7 +72,7 @@ func newFakeProvisioner(ctrl *gomock.Controller) spec.ProvisionerServer {
 	return &provisioner{
 		nameToBucketMap:   make(map[string]*bucketDetails),
 		bucketsLock:       sync.RWMutex{},
-		bucketIdToNameMap: make(map[string]string),
+		bucketIDToNameMap: make(map[string]string),
 		cloud:             cloud,
 	}
 }

@@ -85,7 +85,7 @@ func CreateBucket(ctx context.Context,
 	case constant.StorageAccount:
 		return createStorageAccountBucket(ctx, bucketName, bucketClassParams, cloud)
 	}
-	return "", status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType"))
+	return "", status.Error(codes.InvalidArgument, "Invalid BucketUnitType")
 }
 
 func DeleteBucket(ctx context.Context,

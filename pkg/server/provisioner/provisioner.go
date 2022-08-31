@@ -38,7 +38,7 @@ type provisioner struct {
 
 	bucketsLock       sync.RWMutex
 	nameToBucketMap   map[string]*bucketDetails
-	bucketIdToNameMap map[string]string
+	bucketIDToNameMap map[string]string
 	cloud             *azure.Cloud
 }
 
@@ -62,7 +62,7 @@ func NewProvisionerServer(
 	return &provisioner{
 		nameToBucketMap:   make(map[string]*bucketDetails),
 		bucketsLock:       sync.RWMutex{},
-		bucketIdToNameMap: make(map[string]string),
+		bucketIDToNameMap: make(map[string]string),
 		cloud:             azCloud,
 	}, nil
 }
@@ -116,7 +116,7 @@ func (pr *provisioner) DriverCreateBucket(
 		bucketID:   bucketID,
 		parameters: parameters,
 	}
-	pr.bucketIdToNameMap[bucketID] = bucketName
+	pr.bucketIDToNameMap[bucketID] = bucketName
 	pr.bucketsLock.RUnlock()
 
 	klog.Infof("DriverCreateBucket :: Bucket id :: %s", bucketID)
@@ -137,11 +137,11 @@ func (pr *provisioner) DriverDeleteBucket(
 	}
 
 	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketID)
-	if bucketName, ok := pr.bucketIdToNameMap[bucketID]; ok {
+	if bucketName, ok := pr.bucketIDToNameMap[bucketID]; ok {
 		// Remove from the namesToBucketMap
 		pr.bucketsLock.RLock()
 		delete(pr.nameToBucketMap, bucketName)
-		delete(pr.bucketIdToNameMap, bucketID)
+		delete(pr.bucketIDToNameMap, bucketID)
 		pr.bucketsLock.RUnlock()
 	}
 
