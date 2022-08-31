@@ -61,7 +61,7 @@ type BucketAccessClassParameters struct {
 	signedversion                    string
 	signedIP                         sdk.IPRange
 	validationPeriod                 uint64
-	signedProtocol                   string
+	signedProtocol                   sdk.SASProtocol
 	enableList                       bool
 	enableRead                       bool
 	enableWrite                      bool
@@ -281,6 +281,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 	// validation period default = one week
 	BACParams := &BucketAccessClassParameters{
 		validationPeriod:                 604800000,
+		signedProtocol:                   sdk.SASProtocolHTTPS,
 		enableRead:                       true,
 		enableList:                       true,
 		allowServiceSignedResourceType:   true,
@@ -319,6 +320,12 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			BACParams.region = v
 		case constant.SignedVersionField:
 			BACParams.signedversion = v
+		case constant.SignedProtocolField:
+			switch v {
+			case string(sdk.SASProtocolHTTPS):
+				BACParams.signedProtocol = sdk.SASProtocolHTTPS
+			}
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid SAS Protocol %s", v))
 		case constant.SignedIPField:
 			iplist := strings.Split(v, "-")
 			switch len(iplist) {

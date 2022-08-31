@@ -189,7 +189,7 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters *Buc
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
 
 	sasQueryParams, err := azblob.BlobSASSignatureValues{
-		Protocol:    azblob.SASProtocolHTTPS,
+		Protocol:    azblob.SASProtocol(parameters.signedProtocol),
 		StartTime:   start,
 		ExpiryTime:  expiry,
 		Permissions: permission.String(),
