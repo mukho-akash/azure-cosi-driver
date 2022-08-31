@@ -119,9 +119,9 @@ func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[str
 
 	switch bucketAccessClassParams.bucketUnitType {
 	case constant.Container:
-		return createContainerSASURL(ctx, bucketID, *bucketAccessClassParams)
+		return createContainerSASURL(ctx, bucketID, bucketAccessClassParams)
 	case constant.StorageAccount:
-		return createAccountSASURL(ctx, bucketID, *bucketAccessClassParams)
+		return createAccountSASURL(ctx, bucketID, bucketAccessClassParams)
 	}
 	return "", "", status.Error(codes.InvalidArgument, "invalid bucket type")
 }
