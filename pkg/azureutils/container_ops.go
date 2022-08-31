@@ -52,17 +52,17 @@ func createContainerBucket(
 
 func DeleteContainerBucket(
 	ctx context.Context,
-	bucketId string,
+	bucketID string,
 	cloud *azure.Cloud) error {
-	// Get storage account name from bucketId
-	storageAccountName := getStorageAccountNameFromContainerURL(bucketId)
+	// Get storage account name from bucketID
+	storageAccountName := getStorageAccountNameFromContainerURL(bucketID)
 	// Get access keys for the storage account
 	accessKey, err := cloud.GetStorageAccesskey(ctx, cloud.SubscriptionID, storageAccountName, cloud.ResourceGroup)
 	if err != nil {
 		return err
 	}
 
-	containerName := getContainerNameFromContainerURL(bucketId)
+	containerName := getContainerNameFromContainerURL(bucketID)
 	err = deleteAzureContainer(ctx, storageAccountName, accessKey, containerName)
 	if err != nil {
 		return fmt.Errorf("Error deleting container %s in storage account %s : %v", containerName, storageAccountName, err)
@@ -72,13 +72,13 @@ func DeleteContainerBucket(
 	return nil
 }
 
-func getStorageAccountNameFromContainerURL(containerUrl string) string {
-	storageAccountName, _, _ := parsecontainerurl(containerUrl)
+func getStorageAccountNameFromContainerURL(containerURL string) string {
+	storageAccountName, _, _ := parsecontainerurl(containerURL)
 	return storageAccountName
 }
 
-func getContainerNameFromContainerURL(containerUrl string) string {
-	_, containerName, _ := parsecontainerurl(containerUrl)
+func getContainerNameFromContainerURL(containerURL string) string {
+	_, containerName, _ := parsecontainerurl(containerURL)
 	return containerName
 }
 
@@ -87,13 +87,13 @@ func deleteAzureContainer(
 	storageAccount,
 	accessKey,
 	containerName string) error {
-	containerUrl, err := createContainerURL(storageAccount, accessKey, containerName)
+	containerURL, err := createContainerURL(storageAccount, accessKey, containerName)
 
 	if err != nil {
 		return err
 	}
 
-	_, err = containerUrl.Delete(ctx, azblob.ContainerAccessConditions{})
+	_, err = containerURL.Delete(ctx, azblob.ContainerAccessConditions{})
 	return err
 }
 
@@ -124,8 +124,8 @@ func createContainerURL(
 
 }
 
-func parsecontainerurl(containerUrl string) (string, string, string) {
-	matches := storageAccountRE.FindStringSubmatch(containerUrl)
+func parsecontainerurl(containerURL string) (string, string, string) {
+	matches := storageAccountRE.FindStringSubmatch(containerURL)
 	storageAccount := matches[1]
 	containerName := matches[2]
 	blobName := matches[3]

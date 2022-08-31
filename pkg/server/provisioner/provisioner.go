@@ -29,7 +29,7 @@ import (
 )
 
 type bucketDetails struct {
-	bucketId   string
+	bucketID   string
 	parameters map[string]string
 }
 
@@ -98,14 +98,14 @@ func (pr *provisioner) DriverCreateBucket(
 		}
 		if reflect.DeepEqual(bucketParams, parameters) {
 			return &spec.DriverCreateBucketResponse{
-				BucketId: currBucket.bucketId,
+				BucketId: currBucket.bucketID,
 			}, nil
 		}
 
 		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("Bucket %s exists with different parameters", bucketName))
 	}
 
-	bucketId, err := azureutils.CreateBucket(ctx, bucketName, parameters, pr.cloud)
+	bucketID, err := azureutils.CreateBucket(ctx, bucketName, parameters, pr.cloud)
 	if err != nil {
 		return nil, err
 	}
@@ -113,16 +113,16 @@ func (pr *provisioner) DriverCreateBucket(
 	// Insert the bucket into the namesToBucketMap
 	pr.bucketsLock.RLock()
 	pr.nameToBucketMap[bucketName] = &bucketDetails{
-		bucketId:   bucketId,
+		bucketID:   bucketID,
 		parameters: parameters,
 	}
-	pr.bucketIdToNameMap[bucketId] = bucketName
+	pr.bucketIdToNameMap[bucketID] = bucketName
 	pr.bucketsLock.RUnlock()
 
-	klog.Infof("DriverCreateBucket :: Bucket id :: %s", bucketId)
+	klog.Infof("DriverCreateBucket :: Bucket id :: %s", bucketID)
 
 	return &spec.DriverCreateBucketResponse{
-		BucketId: bucketId,
+		BucketId: bucketID,
 	}, nil
 }
 
@@ -130,18 +130,18 @@ func (pr *provisioner) DriverDeleteBucket(
 	ctx context.Context,
 	req *spec.DriverDeleteBucketRequest) (*spec.DriverDeleteBucketResponse, error) {
 	//determine if the bucket is an account or a blob container
-	bucketId := req.BucketId
-	err := azureutils.DeleteBucket(ctx, bucketId, pr.cloud)
+	bucketID := req.BucketId
+	err := azureutils.DeleteBucket(ctx, bucketID, pr.cloud)
 	if err != nil {
 		return nil, err
 	}
 
-	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketId)
-	if bucketName, ok := pr.bucketIdToNameMap[bucketId]; ok {
+	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketID)
+	if bucketName, ok := pr.bucketIdToNameMap[bucketID]; ok {
 		// Remove from the namesToBucketMap
 		pr.bucketsLock.RLock()
 		delete(pr.nameToBucketMap, bucketName)
-		delete(pr.bucketIdToNameMap, bucketId)
+		delete(pr.bucketIdToNameMap, bucketID)
 		pr.bucketsLock.RUnlock()
 	}
 

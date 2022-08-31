@@ -79,11 +79,13 @@ func CreateBucket(ctx context.Context,
 		return "", status.Error(codes.Unknown, fmt.Sprintf("Error parsing parameters : %v", err))
 	}
 
-	if bucketClassParams.bucketUnitType == constant.Container {
+	switch bucketClassParams.bucketUnitType {
+	case constant.Container:
 		return createContainerBucket(ctx, bucketName, bucketClassParams, cloud)
-	} else {
+	case constant.StorageAccount:
 		return createStorageAccountBucket(ctx, bucketName, bucketClassParams, cloud)
 	}
+	return "", status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType"))
 }
 
 func DeleteBucket(ctx context.Context,
@@ -269,11 +271,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 		}
 	}
-	if BCParams.bucketUnitType == constant.StorageAccount {
-		return BCParams, nil
-	} else {
-		return BCParams, nil
-	}
+	return BCParams, nil
 }
 
 func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAccessClassParameters, error) {
