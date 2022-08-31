@@ -21,7 +21,6 @@ import (
 	"time"
 
 	sdk "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	"github.com/Azure/azure-storage-blob-go/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
