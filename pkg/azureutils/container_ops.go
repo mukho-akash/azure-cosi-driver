@@ -20,7 +20,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	sdk "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"google.golang.org/grpc/codes"
@@ -162,12 +161,12 @@ func createAzureContainer(
 }
 
 func createContainerSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	account := getStorageAccountNameFromContainerURL(bucketID)
+	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)
 	if err != nil {
 		return "", "", err
 	}
 
-	containerClient, err := sdk.NewContainerClient(bucketID, cred, nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -189,10 +188,20 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters *Buc
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
 
-	sasURL, err := containerClient.GetSASURL(permission, start, expiry)
+	sasQueryParams, err := azblob.BlobSASSignatureValues{
+		Protocol:    azblob.SASProtocolHTTPS,
+		StartTime:   start,
+		ExpiryTime:  expiry,
+		Permissions: permission.String(),
+		IPRange:     azblob.IPRange(parameters.signedIP),
+		Version:     parameters.signedversion,
+	}.NewSASQueryParameters(cred)
 	if err != nil {
 		return "", "", err
 	}
-	accountID := fmt.Sprintf("https://%s.blob.core.windows.net", getStorageAccountNameFromContainerURL(bucketID))
+
+	queryParams := sasQueryParams.Encode()
+	sasURL := fmt.Sprintf("%s/%s", bucketID, queryParams)
+	accountID := fmt.Sprintf("https://%s.blob.core.windows.net/", getStorageAccountNameFromContainerURL(bucketID))
 	return sasURL, accountID, nil
 }

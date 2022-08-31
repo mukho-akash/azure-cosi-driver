@@ -3,11 +3,13 @@ package azureutils
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
 	"project/azure-cosi-driver/pkg/constant"
 
+	sdk "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/go-autorest/autorest/to"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -57,7 +59,7 @@ type BucketAccessClassParameters struct {
 	storageAccountName               string
 	region                           string
 	signedversion                    string
-	signedIP                         string
+	signedIP                         sdk.IPRange
 	validationPeriod                 uint64
 	signedProtocol                   string
 	enableList                       bool
@@ -317,6 +319,27 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			BACParams.region = v
 		case constant.SignedVersionField:
 			BACParams.signedversion = v
+		case constant.SignedIPField:
+			iplist := strings.Split(v, "-")
+			switch len(iplist) {
+			case 1:
+				start := net.ParseIP(iplist[0])
+				if start == nil {
+					klog.Warning("IP %s is an invalid ip, no range will be set", iplist[0])
+				}
+				BACParams.signedIP = sdk.IPRange{Start: start}
+			case 2:
+				start := net.ParseIP(iplist[0])
+				end := net.ParseIP(iplist[1])
+				if start == nil {
+					klog.Warning("IP %s is an invalid ip, no range will be set", iplist[0])
+				}
+				if end == nil {
+					klog.Warning("IP %s is an invalid ip, no end to the range will be set", iplist[0])
+				}
+				BACParams.signedIP = sdk.IPRange{Start: start, End: end}
+			}
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid IP Range %s, Must be formatted as <ip> or <ip1>-<ip2>", v))
 		case constant.ValidationPeriodField:
 			msec, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {

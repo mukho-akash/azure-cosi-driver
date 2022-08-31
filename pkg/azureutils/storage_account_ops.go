@@ -54,10 +54,6 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 	if err != nil {
 		return "", "", err
 	}
-	serviceClient, err := azblob.NewServiceClientWithSharedKey(bucketID, cred, nil)
-	if err != nil {
-		return "", "", err
-	}
 
 	resources := azblob.AccountSASResourceTypes{}
 	if parameters.allowServiceSignedResourceType {
@@ -86,9 +82,19 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
-	sasURL, err := serviceClient.GetSASURL(resources, permission, start, expiry)
+	sasQueryParams, err := azblob.AccountSASSignatureValues{
+		Protocol:    azblob.SASProtocolHTTPS,
+		StartTime:   start,
+		ExpiryTime:  expiry,
+		Permissions: permission.String(),
+		Services:    azblob.AccountSASServices{Blob: true}.String(),
+		IPRange:     parameters.signedIP,
+		Version:     parameters.signedversion,
+	}.Sign(cred)
 	if err != nil {
 		return "", "", err
 	}
+	queryParams := sasQueryParams.Encode()
+	sasURL := fmt.Sprintf("%s/%s", bucketID, queryParams)
 	return sasURL, bucketID, nil
 }
