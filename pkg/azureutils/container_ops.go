@@ -18,7 +18,10 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	sdk "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -156,4 +159,46 @@ func createAzureContainer(
 	}
 
 	return containerURL.String(), nil
+}
+
+func createContainerSASURL(ctx context.Context, bucketID string, parameters BucketAccessClassParameters) (string, string, error) {
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return "", "", err
+	}
+
+	containerClient, err := sdk.NewContainerClient(bucketID, cred, nil)
+	if err != nil {
+		return "", "", err
+	}
+
+	permission := sdk.ContainerSASPermissions{}
+	if parameters.enableList {
+		permission.List = true
+	}
+	if parameters.enableRead {
+		permission.Read = true
+	}
+	if parameters.enableWrite {
+		permission.Write = true
+	}
+	if parameters.enablePermanentDelete {
+		permission.DeletePreviousVersion = true
+	}
+
+	var start time.Time
+	if parameters.signedStart != nil {
+		start = *parameters.signedStart
+	} else {
+		start = time.Now()
+	}
+
+	expiry := start.AddDate(0, 0, parameters.signedExpiry)
+
+	sasURL, err := containerClient.GetSASURL(permission, start, expiry)
+	if err != nil {
+		return "", "", err
+	}
+	accountID := fmt.Sprintf("https://%s.blob.core.windows.net", getStorageAccountNameFromContainerURL(bucketID))
+	return sasURL, accountID, nil
 }

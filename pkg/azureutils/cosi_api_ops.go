@@ -110,6 +110,22 @@ func DeleteBucket(ctx context.Context,
 	return err
 }
 
+//creates bucketSASURL and returns (SASURL, accountID, err)
+func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[string]string) (string, string, error) {
+	bucketAccessClassParams, err := parseBucketAccessClassParameters(parameters)
+	if err != nil {
+		return "", "", err
+	}
+
+	switch bucketAccessClassParams.bucketUnitType {
+	case constant.Container:
+		return createContainerSASURL(ctx, bucketID, *bucketAccessClassParams)
+	case constant.StorageAccount:
+		return createAccountSASURL(ctx, bucketID, *bucketAccessClassParams)
+	}
+	return "", "", status.Error(codes.InvalidArgument, "invalid bucket type")
+}
+
 func parseBucketClassParameters(parameters map[string]string) (*BucketClassParameters, error) {
 	BCParams := &BucketClassParameters{}
 	for k, v := range parameters {

@@ -16,7 +16,9 @@ package azureutils
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
@@ -43,4 +45,56 @@ func createStorageAccountBucket(ctx context.Context,
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
 	return accName, nil
+}
+
+//creates SAS and returns service client with sas
+func createAccountSASURL(ctx context.Context, bucketID string, parameters BucketAccessClassParameters) (string, string, error) {
+	account := getStorageAccountNameFromContainerURL(bucketID)
+	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)
+	if err != nil {
+		return "", "", err
+	}
+	serviceClient, err := azblob.NewServiceClientWithSharedKey(bucketID, cred, nil)
+	if err != nil {
+		return "", "", err
+	}
+
+	resources := azblob.AccountSASResourceTypes{}
+	if parameters.allowServiceSignedResourceType {
+		resources.Service = true
+	}
+	if parameters.allowContainerSignedResourceType {
+		resources.Container = true
+	}
+	if parameters.allowObjectSignedResourceType {
+		resources.Object = true
+	}
+
+	permission := azblob.AccountSASPermissions{}
+	if parameters.enableList {
+		permission.List = true
+	}
+	if parameters.enableRead {
+		permission.Read = true
+	}
+	if parameters.enableWrite {
+		permission.Write = true
+	}
+	if parameters.enablePermanentDelete {
+		permission.DeletePreviousVersion = true
+	}
+
+	var start time.Time
+	if parameters.signedStart != nil {
+		start = *parameters.signedStart
+	} else {
+		start = time.Now()
+	}
+
+	expiry := start.AddDate(0, 0, parameters.signedExpiry)
+	sasURL, err := serviceClient.GetSASURL(resources, permission, start, expiry)
+	if err != nil {
+		return "", "", err
+	}
+	return sasURL, bucketID, nil
 }
