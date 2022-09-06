@@ -54,8 +54,6 @@ YYYY-MM-DDThh:mm:ss<TZDSuffix>
 */
 type BucketAccessClassParameters struct {
 	bucketUnitType                   constant.BucketUnitType
-	createBucket                     bool
-	createStorageAccount             bool
 	storageAccountName               string
 	region                           string
 	signedversion                    string
@@ -301,18 +299,6 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 				BACParams.bucketUnitType = constant.StorageAccount
 			default:
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
-			}
-		case constant.CreateBucketField:
-			if strings.EqualFold(v, TrueValue) {
-				BACParams.createBucket = true
-			} else {
-				BACParams.createBucket = false
-			}
-		case constant.CreateStorageAccountField:
-			if strings.EqualFold(v, TrueValue) {
-				BACParams.createStorageAccount = true
-			} else {
-				BACParams.createStorageAccount = false
 			}
 		case constant.StorageAccountNameField:
 			BACParams.storageAccountName = v
