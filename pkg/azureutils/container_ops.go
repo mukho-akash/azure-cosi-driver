@@ -20,7 +20,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
@@ -178,17 +178,16 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters *Buc
 	permission.DeletePreviousVersion = parameters.enablePermanentDelete
 	permission.Add = parameters.enableAdd
 	permission.Tag = parameters.enableTags
-	permission.Immutability = parameters.enableSetImmutability
 
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
 
 	sasQueryParams, err := azblob.BlobSASSignatureValues{
-		Protocol:    parameters.signedProtocol,
+		Protocol:    azblob.SASProtocol(parameters.signedProtocol),
 		StartTime:   start,
 		ExpiryTime:  expiry,
 		Permissions: permission.String(),
-		IPRange:     parameters.signedIP,
+		IPRange:     azblob.IPRange(parameters.signedIP),
 		Version:     parameters.signedversion,
 	}.NewSASQueryParameters(cred)
 	if err != nil {

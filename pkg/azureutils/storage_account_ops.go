@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
@@ -75,7 +75,6 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 	permission.Add = parameters.enableAdd
 	permission.Tag = parameters.enableTags
 	permission.FilterByTags = parameters.enableFilter
-	permission.Immutability = parameters.enableSetImmutability
 
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
@@ -87,7 +86,7 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 		Services:    azblob.AccountSASServices{Blob: true}.String(),
 		IPRange:     parameters.signedIP,
 		Version:     parameters.signedversion,
-	}.NewSASQueryParameters(cred)
+	}.Sign(cred)
 	if err != nil {
 		return "", "", err
 	}

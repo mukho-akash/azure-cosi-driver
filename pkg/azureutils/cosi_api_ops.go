@@ -9,7 +9,7 @@ import (
 
 	"project/azure-cosi-driver/pkg/constant"
 
-	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/go-autorest/autorest/to"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -68,7 +68,6 @@ type BucketAccessClassParameters struct {
 	enableAdd                        bool
 	enableTags                       bool
 	enableFilter                     bool
-	enableSetImmutability            bool
 	allowServiceSignedResourceType   bool
 	allowContainerSignedResourceType bool
 	allowObjectSignedResourceType    bool
@@ -284,7 +283,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 	// validation period default = one week
 	BACParams := &BucketAccessClassParameters{
 		validationPeriod:                 604800000,
-		signedProtocol:                   azblob.SASProtocolHTTPSandHTTP,
+		signedProtocol:                   azblob.SASProtocolHTTPS,
 		enableRead:                       true,
 		enableList:                       true,
 		allowServiceSignedResourceType:   true,
@@ -315,8 +314,6 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			switch v {
 			case string(azblob.SASProtocolHTTPS):
 				BACParams.signedProtocol = azblob.SASProtocolHTTPS
-			case string(azblob.SASProtocolHTTPSandHTTP):
-				BACParams.signedProtocol = azblob.SASProtocolHTTPSandHTTP
 			}
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid SAS Protocol %s", v))
 		case constant.SignedIPField:
@@ -393,12 +390,6 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 				BACParams.enableFilter = true
 			} else if strings.EqualFold(v, FalseValue) {
 				BACParams.enableFilter = false
-			}
-		case constant.EnableSetImmutabilityField:
-			if strings.EqualFold(v, TrueValue) {
-				BACParams.enableSetImmutability = true
-			} else if strings.EqualFold(v, FalseValue) {
-				BACParams.enableSetImmutability = false
 			}
 		case constant.AllowServiceSignedResourceTypeField:
 			if strings.EqualFold(v, TrueValue) {
