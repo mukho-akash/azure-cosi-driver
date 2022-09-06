@@ -171,18 +171,14 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters *Buc
 	}
 
 	permission := azblob.ContainerSASPermissions{}
-	if parameters.enableList {
-		permission.List = true
-	}
-	if parameters.enableRead {
-		permission.Read = true
-	}
-	if parameters.enableWrite {
-		permission.Write = true
-	}
-	if parameters.enablePermanentDelete {
-		permission.DeletePreviousVersion = true
-	}
+	permission.List = parameters.enableList
+	permission.Read = parameters.enableRead
+	permission.Write = parameters.enableWrite
+	permission.Delete = parameters.enableDelete
+	permission.DeletePreviousVersion = parameters.enablePermanentDelete
+	permission.Add = parameters.enableAdd
+	permission.Tag = parameters.enableTags
+	permission.Immutability = parameters.enableSetImmutability
 
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))

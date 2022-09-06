@@ -67,18 +67,15 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 	}
 
 	permission := azblob.AccountSASPermissions{}
-	if parameters.enableList {
-		permission.List = true
-	}
-	if parameters.enableRead {
-		permission.Read = true
-	}
-	if parameters.enableWrite {
-		permission.Write = true
-	}
-	if parameters.enablePermanentDelete {
-		permission.DeletePreviousVersion = true
-	}
+	permission.List = parameters.enableList
+	permission.Read = parameters.enableRead
+	permission.Write = parameters.enableWrite
+	permission.Delete = parameters.enableDelete
+	permission.DeletePreviousVersion = parameters.enablePermanentDelete
+	permission.Add = parameters.enableAdd
+	permission.Tag = parameters.enableTags
+	permission.FilterByTags = parameters.enableFilter
+	permission.Immutability = parameters.enableSetImmutability
 
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))

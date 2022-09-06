@@ -63,7 +63,12 @@ type BucketAccessClassParameters struct {
 	enableList                       bool
 	enableRead                       bool
 	enableWrite                      bool
+	enableDelete                     bool
 	enablePermanentDelete            bool
+	enableAdd                        bool
+	enableTags                       bool
+	enableFilter                     bool
+	enableSetImmutability            bool
 	allowServiceSignedResourceType   bool
 	allowContainerSignedResourceType bool
 	allowObjectSignedResourceType    bool
@@ -359,11 +364,41 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			} else if strings.EqualFold(v, FalseValue) {
 				BACParams.enableWrite = false
 			}
+		case constant.EnableDeleteField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableDelete = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableDelete = false
+			}
 		case constant.EnablePermanentDeleteField:
 			if strings.EqualFold(v, TrueValue) {
 				BACParams.enablePermanentDelete = true
 			} else if strings.EqualFold(v, FalseValue) {
 				BACParams.enablePermanentDelete = false
+			}
+		case constant.EnableAddField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableAdd = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableAdd = false
+			}
+		case constant.EnableTagsField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableTags = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableTags = false
+			}
+		case constant.EnableFilterField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableFilter = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableFilter = false
+			}
+		case constant.EnableSetImmutabilityField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableSetImmutability = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableSetImmutability = false
 			}
 		case constant.AllowServiceSignedResourceTypeField:
 			if strings.EqualFold(v, TrueValue) {
