@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-storage-blob-go/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
@@ -90,7 +90,7 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 		Services:    azblob.AccountSASServices{Blob: true}.String(),
 		IPRange:     parameters.signedIP,
 		Version:     parameters.signedversion,
-	}.Sign(cred)
+	}.NewSASQueryParameters(cred)
 	if err != nil {
 		return "", "", err
 	}

@@ -9,7 +9,7 @@ import (
 
 	"project/azure-cosi-driver/pkg/constant"
 
-	sdk "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/Azure/go-autorest/autorest/to"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -59,9 +59,9 @@ type BucketAccessClassParameters struct {
 	storageAccountName               string
 	region                           string
 	signedversion                    string
-	signedIP                         sdk.IPRange
+	signedIP                         azblob.IPRange
 	validationPeriod                 uint64
-	signedProtocol                   sdk.SASProtocol
+	signedProtocol                   azblob.SASProtocol
 	enableList                       bool
 	enableRead                       bool
 	enableWrite                      bool
@@ -281,7 +281,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 	// validation period default = one week
 	BACParams := &BucketAccessClassParameters{
 		validationPeriod:                 604800000,
-		signedProtocol:                   sdk.SASProtocolHTTPS,
+		signedProtocol:                   azblob.SASProtocolHTTPSandHTTP,
 		enableRead:                       true,
 		enableList:                       true,
 		allowServiceSignedResourceType:   true,
@@ -322,8 +322,10 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			BACParams.signedversion = v
 		case constant.SignedProtocolField:
 			switch v {
-			case string(sdk.SASProtocolHTTPS):
-				BACParams.signedProtocol = sdk.SASProtocolHTTPS
+			case string(azblob.SASProtocolHTTPS):
+				BACParams.signedProtocol = azblob.SASProtocolHTTPS
+			case string(azblob.SASProtocolHTTPSandHTTP):
+				BACParams.signedProtocol = azblob.SASProtocolHTTPSandHTTP
 			}
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid SAS Protocol %s", v))
 		case constant.SignedIPField:
@@ -334,7 +336,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 				if start == nil {
 					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no range will be set", iplist[0]))
 				}
-				BACParams.signedIP = sdk.IPRange{Start: start}
+				BACParams.signedIP = azblob.IPRange{Start: start}
 			case 2:
 				start := net.ParseIP(iplist[0])
 				end := net.ParseIP(iplist[1])
@@ -344,7 +346,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 				if end == nil {
 					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no end to the range will be set", iplist[0]))
 				}
-				BACParams.signedIP = sdk.IPRange{Start: start, End: end}
+				BACParams.signedIP = azblob.IPRange{Start: start, End: end}
 			}
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid IP Range %s, Must be formatted as <ip> or <ip1>-<ip2>", v))
 		case constant.ValidationPeriodField:
