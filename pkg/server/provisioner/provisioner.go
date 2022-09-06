@@ -157,15 +157,25 @@ func (pr *provisioner) DriverGrantBucketAccess(
 		return nil, status.Error(codes.InvalidArgument, "Parameters missing. Cannot initialize Azure bucket.")
 	}
 
-	sas, accountID, err := azureutils.CreateBucketSASURL(ctx, bucketID, parameters)
-	if err != nil {
-		return nil, err
+	if req.AuthenticationType == spec.AuthenticationType_UnknownAuthenticationType {
+		return nil, status.Error(codes.InvalidArgument, "AuthenticationType not provided in GrantBucketAccess request.")
+	}
+
+	var accountID, token string
+
+	if req.AuthenticationType == spec.AuthenticationType_IAM {
+		return nil, status.Error(codes.Unimplemented, "AuthenticationType IAM not implemented.")
+	} else if req.AuthenticationType == spec.AuthenticationType_Key {
+		token, accountID, err := azureutils.CreateBucketSASURL(ctx, bucketID, parameters)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &spec.DriverGrantBucketAccessResponse{
 		AccountId: accountID,
 		Credentials: map[string]*spec.CredentialDetails{constant.CredentialType: {
-			Secrets: map[string]string{constant.SASURL: sas},
+			Secrets: map[string]string{constant.SASURL: token},
 		}},
 	}, nil
 }
