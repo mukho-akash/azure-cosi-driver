@@ -88,7 +88,7 @@ func TestDeleteBucket(t *testing.T) {
 		{
 			testName:    "Delete Container Bucket (Invalid credentials)",
 			bucket:      constant.ValidContainerURL,
-			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : %s", "illegal base64 data at input byte 0")),
+			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
 		},
 	}
 	ctrl := gomock.NewController(t)
