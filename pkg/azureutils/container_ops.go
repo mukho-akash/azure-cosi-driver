@@ -153,10 +153,6 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters *Buc
 		return "", "", err
 	}
 
-	if err != nil {
-		return "", "", err
-	}
-
 	permission := azblob.ContainerSASPermissions{}
 	permission.List = parameters.enableList
 	permission.Read = parameters.enableRead
