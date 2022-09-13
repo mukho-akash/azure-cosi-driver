@@ -85,25 +85,37 @@ func deleteAzureContainer(
 	storageAccount,
 	accessKey,
 	containerName string) error {
-	containerURL, err := createContainerURL(storageAccount, accessKey, containerName)
+	containerClient, err := createContainerClient(storageAccount, accessKey, containerName)
 
 	if err != nil {
 		return err
 	}
 
-	_, err = containerURL.Delete(ctx, azblob.ContainerAccessConditions{})
+	response, err = containerClient.Delete(ctx, nil)
 	return err
 }
 
-func createContainerURL(
+func createContainerClient(
 	storageAccount string,
 	accessKey string,
-	containerName string) (azblob.ContainerURL, error) {
+	containerName string) (*azblob.ContainerClient, error) {
 	// Create credentials
 	credential, err := azblob.NewSharedKeyCredential(storageAccount, accessKey)
 	if err != nil {
 		return azblob.ContainerURL{}, fmt.Errorf("Invalid credentials with error : %v", err)
 	}
+
+	containerURL := fmt.Sprintf("https://%s.blob.core.windows.net/%s", storageAccount, containerName)
+
+	containerClient, err := azblob.NewContainerClientWithSharedKey(containerURL, credential, nil)
+
+	return containerClient
+)
+
+func createContainerURL(
+	storageAccount string,
+	accessKey string,
+	containerName string) (azblob.ContainerURL, error) {
 
 	// Create a default request pipeline using credential
 	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
@@ -119,7 +131,6 @@ func createContainerURL(
 	containerURL := serviceURL.NewContainerURL(containerName)
 
 	return containerURL, nil
-
 }
 
 func parsecontainerurl(containerURL string) (string, string, string) {
@@ -140,19 +151,17 @@ func createAzureContainer(
 		return "", fmt.Errorf("Invalid storage account or access key")
 	}
 
-	containerURL, err := createContainerURL(storageAccount, accessKey, containerName)
+	containerClient, err := createContainerClient(storageAccount, accessKey, containerName)
 	if err != nil {
 		return "", err
 	}
 
-	// Lets create a container with the containerURL
-	_, err = containerURL.Create(ctx, parameters, azblob.PublicAccessNone)
+	// Lets create a container with the containerClient
+	response, err = containerClient.Create(ctx, &azblob.ContainerCreateOptions{
+		Metadata: parameters,
+		Access: nil,
+	})
 	if err != nil {
-		if serr, ok := err.(azblob.StorageError); ok {
-			if serr.ServiceCode() == azblob.ServiceCodeBlobAlreadyExists {
-				return containerURL.String(), nil
-			}
-		}
 		return "", fmt.Errorf("Error creating container from containterURL : %s, Error : %v", containerURL.String(), err)
 	}
 

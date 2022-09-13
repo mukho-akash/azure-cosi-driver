@@ -159,7 +159,7 @@ func TestGetContainerNameFromContainerURL(t *testing.T) {
 	}
 }
 
-func TestCreateContainerURL(t *testing.T) {
+func TestCreateContainerClient(t *testing.T) {
 	tests := []struct {
 		testName    string
 		account     string
@@ -186,7 +186,7 @@ func TestCreateContainerURL(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		url, err := createContainerURL(test.account, test.key, test.container)
+		url, err := createContainerClient(test.account, test.key, test.container)
 		urlStr := url.String()
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
