@@ -162,11 +162,12 @@ func (pr *provisioner) DriverGrantBucketAccess(
 	}
 
 	var accountID, token string
+	var err error
 
 	if req.AuthenticationType == spec.AuthenticationType_IAM {
 		return nil, status.Error(codes.Unimplemented, "AuthenticationType IAM not implemented.")
 	} else if req.AuthenticationType == spec.AuthenticationType_Key {
-		token, accountID, err := azureutils.CreateBucketSASURL(ctx, bucketID, parameters)
+		token, accountID, err = azureutils.CreateBucketSASURL(ctx, bucketID, parameters)
 		if err != nil {
 			return nil, err
 		}

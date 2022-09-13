@@ -16,7 +16,6 @@ package azureutils
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"regexp"
 	"time"
 
@@ -91,7 +90,7 @@ func deleteAzureContainer(
 		return err
 	}
 
-	response, err = containerClient.Delete(ctx, nil)
+	_, err = containerClient.Delete(ctx, nil)
 	return err
 }
 
@@ -102,14 +101,14 @@ func createContainerClient(
 	// Create credentials
 	credential, err := azblob.NewSharedKeyCredential(storageAccount, accessKey)
 	if err != nil {
-		return azblob.ContainerURL{}, fmt.Errorf("Invalid credentials with error : %v", err)
+		return nil, fmt.Errorf("Invalid credentials with error : %v", err)
 	}
 
 	containerURL := fmt.Sprintf("https://%s.blob.core.windows.net/%s", storageAccount, containerName)
 
 	containerClient, err := azblob.NewContainerClientWithSharedKey(containerURL, credential, nil)
 
-	return containerClient
+	return containerClient, err
 }
 
 func parsecontainerurl(containerURL string) (string, string, string) {
@@ -136,15 +135,15 @@ func createAzureContainer(
 	}
 
 	// Lets create a container with the containerClient
-	response, err = containerClient.Create(ctx, &azblob.ContainerCreateOptions{
+	_, err = containerClient.Create(ctx, &azblob.ContainerCreateOptions{
 		Metadata: parameters,
-		Access: nil,
+		Access:   nil,
 	})
 	if err != nil {
-		return "", fmt.Errorf("Error creating container from containterURL : %s, Error : %v", containerURL.String(), err)
+		return "", fmt.Errorf("Error creating container from containterURL : %s, Error : %v", containerClient.URL(), err)
 	}
 
-	return containerURL.String(), nil
+	return containerClient.URL(), nil
 }
 
 func createContainerSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {

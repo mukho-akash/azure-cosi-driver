@@ -186,8 +186,8 @@ func TestCreateContainerClient(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		url, err := createContainerClient(test.account, test.key, test.container)
-		urlStr := url.String()
+		client, err := createContainerClient(test.account, test.key, test.container)
+		urlStr := client.URL()
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}
