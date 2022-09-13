@@ -274,3 +274,45 @@ func TestCreateAzureContainer(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateContainerSASURL(t *testing.T) {
+	tests := []struct {
+		testName    string
+		bucketID    string
+		params      *BucketAccessClassParameters
+		urlIsEmpty  bool
+		expectedID  string
+		expectedErr error
+	}{
+		{
+			testName: "Key is illegal base64 data",
+			bucketID: constant.ValidContainerURL,
+			params: &BucketAccessClassParameters{
+				key: "badkey",
+			},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: fmt.Errorf("decode account key: %w", base64.CorruptInputError(4)),
+		},
+		{
+			testName: "Correct Inputs",
+			bucketID: constant.ValidContainerURL,
+			params: &BucketAccessClassParameters{
+				enableRead:       true,
+				enableList:       true,
+				validationPeriod: 1,
+			},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		_, accountID, err := createContainerSASURL(context.Background(), test.bucketID, test.params)
+		if !reflect.DeepEqual(err, test.expectedErr) {
+			t.Errorf("\nTestCase: %s\nexpected:\t%v\nactual: \t%v", test.testName, test.expectedErr, err)
+		}
+		if err == nil && !reflect.DeepEqual(accountID, test.expectedID) {
+			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.expectedID, accountID)
+		}
+	}
+}
