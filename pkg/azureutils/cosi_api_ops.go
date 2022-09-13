@@ -3,11 +3,13 @@ package azureutils
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
 	"project/azure-cosi-driver/pkg/constant"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/go-autorest/autorest/to"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -43,13 +45,33 @@ type BucketClassParameters struct {
 	enableLargeFileShare      bool
 }
 
+/*
+signed expiry is done in days in reference to start, while signed start is written as a date
+start should be written in ISO 8601 UTC. default will be the immediate time/date
+YYYY-MM-DD
+YYYY-MM-DDThh:mm<TZDSuffix>
+YYYY-MM-DDThh:mm:ss<TZDSuffix>
+*/
 type BucketAccessClassParameters struct {
-	bucketUnitType    constant.BucketUnitType
-	region            string
-	signedversion     string
-	signedPermissions constant.SignedPermissions
-	signedExpiry      int
-	signedResouceType constant.SignedResourceType
+	bucketUnitType                   constant.BucketUnitType
+	storageAccountName               string
+	region                           string
+	signedversion                    string
+	signedIP                         azblob.IPRange
+	validationPeriod                 uint64
+	signedProtocol                   azblob.SASProtocol
+	enableList                       bool
+	enableRead                       bool
+	enableWrite                      bool
+	enableDelete                     bool
+	enablePermanentDelete            bool
+	enableAdd                        bool
+	enableTags                       bool
+	enableFilter                     bool
+	allowServiceSignedResourceType   bool
+	allowContainerSignedResourceType bool
+	allowObjectSignedResourceType    bool
+	key                              string
 }
 
 func CreateBucket(ctx context.Context,
@@ -61,11 +83,13 @@ func CreateBucket(ctx context.Context,
 		return "", status.Error(codes.Unknown, fmt.Sprintf("Error parsing parameters : %v", err))
 	}
 
-	if bucketClassParams.bucketUnitType == constant.Container {
+	switch bucketClassParams.bucketUnitType {
+	case constant.Container:
 		return createContainerBucket(ctx, bucketName, bucketClassParams, cloud)
-	} else {
+	case constant.StorageAccount:
 		return createStorageAccountBucket(ctx, bucketName, bucketClassParams, cloud)
 	}
+	return "", status.Error(codes.InvalidArgument, "Invalid BucketUnitType")
 }
 
 func DeleteBucket(ctx context.Context,
@@ -88,6 +112,22 @@ func DeleteBucket(ctx context.Context,
 		err = DeleteContainerBucket(ctx, bucketID, cloud)
 	}
 	return err
+}
+
+// creates bucketSASURL and returns (SASURL, accountID, err)
+func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[string]string) (string, string, error) {
+	bucketAccessClassParams, err := parseBucketAccessClassParameters(parameters)
+	if err != nil {
+		return "", "", err
+	}
+
+	switch bucketAccessClassParams.bucketUnitType {
+	case constant.Container:
+		return createContainerSASURL(ctx, bucketID, bucketAccessClassParams)
+	case constant.StorageAccount:
+		return createAccountSASURL(ctx, bucketID, bucketAccessClassParams)
+	}
+	return "", "", status.Error(codes.InvalidArgument, "invalid bucket type")
 }
 
 func parseBucketClassParameters(parameters map[string]string) (*BucketClassParameters, error) {
@@ -235,15 +275,21 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 		}
 	}
-	if BCParams.bucketUnitType == constant.StorageAccount {
-		return BCParams, nil
-	} else {
-		return BCParams, nil
-	}
+	return BCParams, nil
 }
 
 func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAccessClassParameters, error) {
-	BACParams := &BucketAccessClassParameters{}
+	//defaults
+	// validation period default = one week
+	BACParams := &BucketAccessClassParameters{
+		validationPeriod:                 604800000,
+		signedProtocol:                   azblob.SASProtocolHTTPS,
+		enableRead:                       true,
+		enableList:                       true,
+		allowServiceSignedResourceType:   true,
+		allowContainerSignedResourceType: true,
+		allowObjectSignedResourceType:    true,
+	}
 	for k, v := range parameters {
 		switch strings.ToLower(k) {
 		case constant.BucketUnitTypeField:
@@ -258,49 +304,110 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			default:
 				return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid BucketUnitType %s", v))
 			}
+		case constant.StorageAccountNameField:
+			BACParams.storageAccountName = v
 		case constant.RegionField:
 			BACParams.region = v
 		case constant.SignedVersionField:
 			BACParams.signedversion = v
-		case constant.SignedPermissionsField:
-			switch strings.ToLower(v) {
-			case constant.Read.String():
-				BACParams.signedPermissions = constant.Read
-			case constant.Add.String():
-				BACParams.signedPermissions = constant.Add
-			case constant.Create.String():
-				BACParams.signedPermissions = constant.Create
-			case constant.Write.String():
-				BACParams.signedPermissions = constant.Write
-			case constant.Delete.String():
-				BACParams.signedPermissions = constant.Delete
-			case constant.ReadWrite.String():
-				BACParams.signedPermissions = constant.ReadWrite
-			case constant.AddDelete.String():
-				BACParams.signedPermissions = constant.AddDelete
-			case constant.List.String():
-				BACParams.signedPermissions = constant.List
-			case constant.DeleteVersion.String():
-				BACParams.signedPermissions = constant.Delete
-			case constant.PermanentDelete.String():
-				BACParams.signedPermissions = constant.PermanentDelete
-			case constant.All.String():
-				BACParams.signedPermissions = constant.All
+		case constant.SignedProtocolField:
+			switch v {
+			case string(azblob.SASProtocolHTTPS):
+				BACParams.signedProtocol = azblob.SASProtocolHTTPS
 			}
-		case constant.SignedExpiryField:
-			days, err := strconv.Atoi(v)
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid SAS Protocol %s", v))
+		case constant.SignedIPField:
+			iplist := strings.Split(v, "-")
+			switch len(iplist) {
+			case 1:
+				start := net.ParseIP(iplist[0])
+				if start == nil {
+					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no range will be set", iplist[0]))
+				}
+				BACParams.signedIP = azblob.IPRange{Start: start}
+			case 2:
+				start := net.ParseIP(iplist[0])
+				end := net.ParseIP(iplist[1])
+				if start == nil {
+					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no range will be set", iplist[0]))
+				}
+				if end == nil {
+					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no end to the range will be set", iplist[0]))
+				}
+				BACParams.signedIP = azblob.IPRange{Start: start, End: end}
+			}
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid IP Range %s, Must be formatted as <ip> or <ip1>-<ip2>", v))
+		case constant.ValidationPeriodField:
+			msec, err := strconv.ParseUint(v, 10, 64)
 			if err != nil {
 				return nil, status.Error(codes.InvalidArgument, err.Error())
 			}
-			BACParams.signedExpiry = days
-		case constant.SignedResourceTypeField:
-			switch strings.ToLower(v) {
-			case constant.TypeObject.String():
-				BACParams.signedResouceType = constant.TypeObject
-			case constant.TypeContainer.String():
-				BACParams.signedResouceType = constant.TypeContainer
-			case constant.TypeObjectAndContainer.String():
-				BACParams.signedResouceType = constant.TypeObjectAndContainer
+			BACParams.validationPeriod = msec
+		case constant.EnableListField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableList = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableList = false
+			}
+		case constant.EnableReadField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableRead = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableRead = false
+			}
+		case constant.EnableWriteField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableWrite = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableWrite = false
+			}
+		case constant.EnableDeleteField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableDelete = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableDelete = false
+			}
+		case constant.EnablePermanentDeleteField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enablePermanentDelete = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enablePermanentDelete = false
+			}
+		case constant.EnableAddField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableAdd = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableAdd = false
+			}
+		case constant.EnableTagsField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableTags = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableTags = false
+			}
+		case constant.EnableFilterField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.enableFilter = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.enableFilter = false
+			}
+		case constant.AllowServiceSignedResourceTypeField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.allowServiceSignedResourceType = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.allowServiceSignedResourceType = false
+			}
+		case constant.AllowContainerSignedResourceTypeField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.allowObjectSignedResourceType = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.allowObjectSignedResourceType = false
+			}
+		case constant.AllowObjectSignedResourceTypeField:
+			if strings.EqualFold(v, TrueValue) {
+				BACParams.allowObjectSignedResourceType = true
+			} else if strings.EqualFold(v, FalseValue) {
+				BACParams.allowObjectSignedResourceType = false
 			}
 		}
 	}

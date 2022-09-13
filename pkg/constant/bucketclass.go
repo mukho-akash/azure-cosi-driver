@@ -1,7 +1,7 @@
 package constant
 
 const (
-	//BucketClassParameterFields
+	// BucketClassParameterFields
 	BucketUnitTypeField                 = "bucketunittype"
 	CreateBucketField                   = "createbucket"
 	CreateStorageAccountField           = "createstorageaccount"

@@ -66,7 +66,7 @@ func TestDeleteContainerBucket(t *testing.T) {
 			testName:    "Invalid Credentials/Key",
 			url:         constant.ValidContainerURL,
 			clientNil:   false,
-			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : %s", "illegal base64 data at input byte 0")),
+			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
 		},
 	}
 
@@ -159,7 +159,7 @@ func TestGetContainerNameFromContainerURL(t *testing.T) {
 	}
 }
 
-func TestCreateContainerURL(t *testing.T) {
+func TestCreateContainerClient(t *testing.T) {
 	tests := []struct {
 		testName    string
 		account     string
@@ -174,7 +174,7 @@ func TestCreateContainerURL(t *testing.T) {
 			key:         "key",
 			container:   constant.ValidContainer,
 			expectedURL: constant.ValidContainerURL,
-			expectedErr: fmt.Errorf("Invalid credentials with error : %s", "illegal base64 data at input byte 0"),
+			expectedErr: fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0"),
 		},
 		{
 			testName:    "Valid URL",
@@ -186,14 +186,22 @@ func TestCreateContainerURL(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		url, err := createContainerURL(test.account, test.key, test.container)
-		urlStr := url.String()
-		if !reflect.DeepEqual(err, test.expectedErr) {
-			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
+		client, err := createContainerClient(test.account, test.key, test.container)
+		if err != nil {
+			if !reflect.DeepEqual(err, test.expectedErr) {
+				t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
+			}
+		} else {
+			if client == nil {
+				t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: Client is nil", test.testName, test.expectedErr)
+			} else {
+				urlStr := client.URL()
+				if !reflect.DeepEqual(urlStr, test.expectedURL) {
+					t.Errorf("\nTestCase: %s\nExpected URL: %v\nActual URL: %v", test.testName, test.expectedURL, urlStr)
+				}
+			}
 		}
-		if err == nil && !reflect.DeepEqual(urlStr, test.expectedURL) {
-			t.Errorf("\nTestCase: %s\nExpected URL: %v\nActual URL: %v", test.testName, test.expectedURL, urlStr)
-		}
+
 	}
 }
 
@@ -210,7 +218,7 @@ func TestDeleteAzureContainer(t *testing.T) {
 			account:     constant.ValidAccount,
 			key:         "key",
 			container:   constant.ValidContainer,
-			expectedErr: fmt.Errorf("Invalid credentials with error : %s", "illegal base64 data at input byte 0"),
+			expectedErr: fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0"),
 		},
 	}
 	for _, test := range tests {
@@ -252,7 +260,7 @@ func TestCreateAzureContainer(t *testing.T) {
 			key:         "key",
 			container:   constant.ValidContainer,
 			expectedURL: "",
-			expectedErr: fmt.Errorf("Invalid credentials with error : %s", "illegal base64 data at input byte 0"),
+			expectedErr: fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0"),
 		},
 	}
 	params := make(map[string]string)

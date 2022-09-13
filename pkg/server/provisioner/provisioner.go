@@ -17,6 +17,7 @@ import (
 	"context"
 	"fmt"
 	"project/azure-cosi-driver/pkg/azureutils"
+	"project/azure-cosi-driver/pkg/constant"
 	"reflect"
 	"sync"
 
@@ -28,7 +29,7 @@ import (
 )
 
 type bucketDetails struct {
-	bucketId   string
+	bucketID   string
 	parameters map[string]string
 }
 
@@ -37,7 +38,7 @@ type provisioner struct {
 
 	bucketsLock       sync.RWMutex
 	nameToBucketMap   map[string]*bucketDetails
-	bucketIdToNameMap map[string]string
+	bucketIDToNameMap map[string]string
 	cloud             *azure.Cloud
 }
 
@@ -61,7 +62,7 @@ func NewProvisionerServer(
 	return &provisioner{
 		nameToBucketMap:   make(map[string]*bucketDetails),
 		bucketsLock:       sync.RWMutex{},
-		bucketIdToNameMap: make(map[string]string),
+		bucketIDToNameMap: make(map[string]string),
 		cloud:             azCloud,
 	}, nil
 }
@@ -97,14 +98,14 @@ func (pr *provisioner) DriverCreateBucket(
 		}
 		if reflect.DeepEqual(bucketParams, parameters) {
 			return &spec.DriverCreateBucketResponse{
-				BucketId: currBucket.bucketId,
+				BucketId: currBucket.bucketID,
 			}, nil
 		}
 
 		return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("Bucket %s exists with different parameters", bucketName))
 	}
 
-	bucketId, err := azureutils.CreateBucket(ctx, bucketName, parameters, pr.cloud)
+	bucketID, err := azureutils.CreateBucket(ctx, bucketName, parameters, pr.cloud)
 	if err != nil {
 		return nil, err
 	}
@@ -112,16 +113,16 @@ func (pr *provisioner) DriverCreateBucket(
 	// Insert the bucket into the namesToBucketMap
 	pr.bucketsLock.RLock()
 	pr.nameToBucketMap[bucketName] = &bucketDetails{
-		bucketId:   bucketId,
+		bucketID:   bucketID,
 		parameters: parameters,
 	}
-	pr.bucketIdToNameMap[bucketId] = bucketName
+	pr.bucketIDToNameMap[bucketID] = bucketName
 	pr.bucketsLock.RUnlock()
 
-	klog.Infof("DriverCreateBucket :: Bucket id :: %s", bucketId)
+	klog.Infof("DriverCreateBucket :: Bucket id :: %s", bucketID)
 
 	return &spec.DriverCreateBucketResponse{
-		BucketId: bucketId,
+		BucketId: bucketID,
 	}, nil
 }
 
@@ -129,18 +130,18 @@ func (pr *provisioner) DriverDeleteBucket(
 	ctx context.Context,
 	req *spec.DriverDeleteBucketRequest) (*spec.DriverDeleteBucketResponse, error) {
 	//determine if the bucket is an account or a blob container
-	bucketId := req.BucketId
-	err := azureutils.DeleteBucket(ctx, bucketId, pr.cloud)
+	bucketID := req.BucketId
+	err := azureutils.DeleteBucket(ctx, bucketID, pr.cloud)
 	if err != nil {
 		return nil, err
 	}
 
-	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketId)
-	if bucketName, ok := pr.bucketIdToNameMap[bucketId]; ok {
+	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketID)
+	if bucketName, ok := pr.bucketIDToNameMap[bucketID]; ok {
 		// Remove from the namesToBucketMap
 		pr.bucketsLock.RLock()
 		delete(pr.nameToBucketMap, bucketName)
-		delete(pr.bucketIdToNameMap, bucketId)
+		delete(pr.bucketIDToNameMap, bucketID)
 		pr.bucketsLock.RUnlock()
 	}
 
@@ -150,7 +151,34 @@ func (pr *provisioner) DriverDeleteBucket(
 func (pr *provisioner) DriverGrantBucketAccess(
 	ctx context.Context,
 	req *spec.DriverGrantBucketAccessRequest) (*spec.DriverGrantBucketAccessResponse, error) {
-	return &spec.DriverGrantBucketAccessResponse{}, nil
+	bucketID := req.GetBucketId()
+	parameters := req.GetParameters()
+	if parameters == nil {
+		return nil, status.Error(codes.InvalidArgument, "Parameters missing. Cannot initialize Azure bucket.")
+	}
+
+	if req.AuthenticationType == spec.AuthenticationType_UnknownAuthenticationType {
+		return nil, status.Error(codes.InvalidArgument, "AuthenticationType not provided in GrantBucketAccess request.")
+	}
+
+	var accountID, token string
+	var err error
+
+	if req.AuthenticationType == spec.AuthenticationType_IAM {
+		return nil, status.Error(codes.Unimplemented, "AuthenticationType IAM not implemented.")
+	} else if req.AuthenticationType == spec.AuthenticationType_Key {
+		token, accountID, err = azureutils.CreateBucketSASURL(ctx, bucketID, parameters)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &spec.DriverGrantBucketAccessResponse{
+		AccountId: accountID,
+		Credentials: map[string]*spec.CredentialDetails{constant.CredentialType: {
+			Secrets: map[string]string{constant.SASURL: token},
+		}},
+	}, nil
 }
 
 func (pr *provisioner) DriverRevokeBucketAccess(

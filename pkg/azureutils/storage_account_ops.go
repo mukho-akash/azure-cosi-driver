@@ -16,7 +16,9 @@ package azureutils
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
@@ -43,4 +45,52 @@ func createStorageAccountBucket(ctx context.Context,
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
 	return accName, nil
+}
+
+// creates SAS and returns service client with sas
+func createAccountSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {
+	account := getStorageAccountNameFromContainerURL(bucketID)
+	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)
+	if err != nil {
+		return "", "", err
+	}
+
+	resources := azblob.AccountSASResourceTypes{}
+	if parameters.allowServiceSignedResourceType {
+		resources.Service = true
+	}
+	if parameters.allowContainerSignedResourceType {
+		resources.Container = true
+	}
+	if parameters.allowObjectSignedResourceType {
+		resources.Object = true
+	}
+
+	permission := azblob.AccountSASPermissions{}
+	permission.List = parameters.enableList
+	permission.Read = parameters.enableRead
+	permission.Write = parameters.enableWrite
+	permission.Delete = parameters.enableDelete
+	permission.DeletePreviousVersion = parameters.enablePermanentDelete
+	permission.Add = parameters.enableAdd
+	permission.Tag = parameters.enableTags
+	permission.FilterByTags = parameters.enableFilter
+
+	start := time.Now()
+	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
+	sasQueryParams, err := azblob.AccountSASSignatureValues{
+		Protocol:    parameters.signedProtocol,
+		StartTime:   start,
+		ExpiryTime:  expiry,
+		Permissions: permission.String(),
+		Services:    azblob.AccountSASServices{Blob: true}.String(),
+		IPRange:     parameters.signedIP,
+		Version:     parameters.signedversion,
+	}.Sign(cred)
+	if err != nil {
+		return "", "", err
+	}
+	queryParams := sasQueryParams.Encode()
+	sasURL := fmt.Sprintf("%s/%s", bucketID, queryParams)
+	return sasURL, bucketID, nil
 }
