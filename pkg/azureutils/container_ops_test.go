@@ -187,11 +187,14 @@ func TestCreateContainerClient(t *testing.T) {
 	}
 	for _, test := range tests {
 		client, err := createContainerClient(test.account, test.key, test.container)
-		urlStr := client.URL()
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}
-		if err == nil && !reflect.DeepEqual(urlStr, test.expectedURL) {
+		if err == nil && client == nil {
+			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: Client is nil", test.testName, test.expectedErr)
+		}
+		urlStr := client.URL()
+		if !reflect.DeepEqual(urlStr, test.expectedURL) {
 			t.Errorf("\nTestCase: %s\nExpected URL: %v\nActual URL: %v", test.testName, test.expectedURL, urlStr)
 		}
 	}
