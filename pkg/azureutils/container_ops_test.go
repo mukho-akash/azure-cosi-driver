@@ -193,6 +193,7 @@ func TestCreateContainerClient(t *testing.T) {
 		if err == nil && client == nil {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: Client is nil", test.testName, test.expectedErr)
 		}
+		t.Errorf("AKASH :: %v", client)
 		urlStr := client.URL()
 		if !reflect.DeepEqual(urlStr, test.expectedURL) {
 			t.Errorf("\nTestCase: %s\nExpected URL: %v\nActual URL: %v", test.testName, test.expectedURL, urlStr)
