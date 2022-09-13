@@ -66,7 +66,7 @@ func TestDeleteContainerBucket(t *testing.T) {
 			testName:    "Invalid Credentials/Key",
 			url:         constant.ValidContainerURL,
 			clientNil:   false,
-			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : %s", "illegal base64 data at input byte 0")),
+			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error :  decode account key: illegal base64 data at input byte 0")),
 		},
 	}
 
@@ -174,7 +174,7 @@ func TestCreateContainerClient(t *testing.T) {
 			key:         "key",
 			container:   constant.ValidContainer,
 			expectedURL: constant.ValidContainerURL,
-			expectedErr: fmt.Errorf("Invalid credentials with error : %s", "illegal base64 data at input byte 0"),
+			expectedErr: fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0"),
 		},
 		{
 			testName:    "Valid URL",
