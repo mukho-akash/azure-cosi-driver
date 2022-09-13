@@ -110,27 +110,6 @@ func createContainerClient(
 	containerClient, err := azblob.NewContainerClientWithSharedKey(containerURL, credential, nil)
 
 	return containerClient
-)
-
-func createContainerURL(
-	storageAccount string,
-	accessKey string,
-	containerName string) (azblob.ContainerURL, error) {
-
-	// Create a default request pipeline using credential
-	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
-
-	urlString, err := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", storageAccount))
-	if err != nil {
-		return azblob.ContainerURL{}, err
-	}
-
-	serviceURL := azblob.NewServiceURL(*urlString, pipeline)
-
-	// Create containerURL that wraps the service url and pipeline to make requests
-	containerURL := serviceURL.NewContainerURL(containerName)
-
-	return containerURL, nil
 }
 
 func parsecontainerurl(containerURL string) (string, string, string) {
