@@ -1,4 +1,4 @@
-name: Linux Build & Unit Tests
+name: MacOS Build & Unit Tests
 on:
     pull_request: {}
     push: {}
