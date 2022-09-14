@@ -37,7 +37,7 @@ const (
 )
 
 // ConvertTagsToMap convert the tags from string to map
-// the valid tags fomat is "key1=value1,key2=value2", which could be converted to
+// the valid tags format is "key1=value1,key2=value2", which could be converted to
 // {"key1": "value1", "key2": "value2"}
 func ConvertTagsToMap(tags string) (map[string]string, error) {
 	m := make(map[string]string)
