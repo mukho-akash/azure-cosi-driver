@@ -79,13 +79,14 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
 	sasQueryParams, err := azblob.AccountSASSignatureValues{
-		Protocol:    parameters.signedProtocol,
-		StartTime:   start,
-		ExpiryTime:  expiry,
-		Permissions: permission.String(),
-		Services:    azblob.AccountSASServices{Blob: true}.String(),
-		IPRange:     parameters.signedIP,
-		Version:     parameters.signedversion,
+		Protocol:      parameters.signedProtocol,
+		StartTime:     start,
+		ExpiryTime:    expiry,
+		Permissions:   permission.String(),
+		ResourceTypes: resources.String(),
+		Services:      azblob.AccountSASServices{Blob: true}.String(),
+		IPRange:       parameters.signedIP,
+		Version:       parameters.signedversion,
 	}.Sign(cred)
 	if err != nil {
 		return "", "", err

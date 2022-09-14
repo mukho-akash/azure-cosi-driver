@@ -15,6 +15,7 @@ package azureutils
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -136,6 +137,58 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 		}
 		if err == nil && !reflect.DeepEqual(accName, test.account) {
 			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.account, accName)
+		}
+	}
+}
+
+func TestCreateAccountSASURL(t *testing.T) {
+	tests := []struct {
+		testName    string
+		bucketID    string
+		params      *BucketAccessClassParameters
+		urlIsEmpty  bool
+		expectedID  string
+		expectedErr error
+	}{
+		{
+			testName: "Key is illegal base64 data",
+			bucketID: constant.ValidAccountURL,
+			params: &BucketAccessClassParameters{
+				key: "badkey",
+			},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: fmt.Errorf("decode account key: %w", base64.CorruptInputError(4)),
+		},
+		{
+			testName:    "Missing permissions, expiry, etc.",
+			bucketID:    constant.ValidAccountURL,
+			params:      &BucketAccessClassParameters{},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: fmt.Errorf("account SAS is missing at least one of these: ExpiryTime, Permissions, Service, or ResourceType"),
+		},
+		{
+			testName: "Correct Inputs",
+			bucketID: constant.ValidAccountURL,
+			params: &BucketAccessClassParameters{
+				allowServiceSignedResourceType:   true,
+				allowContainerSignedResourceType: true,
+				allowObjectSignedResourceType:    true,
+				enableRead:                       true,
+				enableList:                       true,
+				validationPeriod:                 1,
+			},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		_, bucketID, err := createAccountSASURL(context.Background(), test.bucketID, test.params)
+		if !reflect.DeepEqual(err, test.expectedErr) {
+			t.Errorf("\nTestCase: %s\nexpected:\t%v\nactual: \t%v", test.testName, test.expectedErr, err)
+		}
+		if err == nil && !reflect.DeepEqual(bucketID, test.expectedID) {
+			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.expectedID, bucketID)
 		}
 	}
 }

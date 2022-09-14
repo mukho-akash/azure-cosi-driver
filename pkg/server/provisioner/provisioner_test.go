@@ -127,3 +127,88 @@ func TestDriverCreateBucket(t *testing.T) {
 		}
 	}
 }
+
+func TestDriverDeleteBucket(t *testing.T) {
+	tests := []struct {
+		testName    string
+		bucketID    string
+		expectedErr error
+	}{
+		{
+			testName:    "Delete Storage Account Bucket",
+			bucketID:    constant.ValidAccountURL,
+			expectedErr: nil,
+		},
+		{
+			testName:    "Delete Container Bucket",
+			bucketID:    constant.ValidContainerURL,
+			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	pr := newFakeProvisioner(ctrl)
+
+	for _, test := range tests {
+		resp, err := pr.DriverDeleteBucket(context.Background(), &spec.DriverDeleteBucketRequest{
+			BucketId: test.bucketID,
+		})
+		if !reflect.DeepEqual(err, test.expectedErr) {
+			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
+		}
+		if err == nil && reflect.DeepEqual(nil, resp) {
+			t.Errorf("\nTestCase: %s\nresponse is nil", test.testName)
+		}
+	}
+}
+
+func TestDriverGrantBucketAccess(t *testing.T) {
+	tests := []struct {
+		testName    string
+		bucketID    string
+		authType    spec.AuthenticationType
+		params      map[string]string
+		expectedErr error
+	}{
+		{
+			testName:    "No Parameters",
+			expectedErr: status.Error(codes.InvalidArgument, "Parameters missing. Cannot initialize Azure bucket."),
+		},
+		{
+			testName:    "Unknown auth type",
+			authType:    spec.AuthenticationType_UnknownAuthenticationType,
+			params:      map[string]string{},
+			expectedErr: status.Error(codes.InvalidArgument, "AuthenticationType not provided in GrantBucketAccess request."),
+		},
+		{
+			testName:    "IAM Not yet Implemented",
+			authType:    spec.AuthenticationType_IAM,
+			params:      map[string]string{},
+			expectedErr: status.Error(codes.Unimplemented, "AuthenticationType IAM not implemented."),
+		},
+		{
+			testName:    "Key Auth Type",
+			authType:    spec.AuthenticationType_Key,
+			bucketID:    constant.ValidAccountURL,
+			params:      map[string]string{},
+			expectedErr: nil,
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	pr := newFakeProvisioner(ctrl)
+
+	for _, test := range tests {
+		resp, err := pr.DriverGrantBucketAccess(context.Background(), &spec.DriverGrantBucketAccessRequest{
+			BucketId:           test.bucketID,
+			AuthenticationType: test.authType,
+			Parameters:         test.params,
+		})
+		if !reflect.DeepEqual(err, test.expectedErr) {
+			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
+		}
+		if err == nil && reflect.DeepEqual(nil, resp) {
+			t.Errorf("\nTestCase: %s\nresponse is nil", test.testName)
+		}
+	}
+}
