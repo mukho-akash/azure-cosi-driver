@@ -2,7 +2,7 @@
 kind: BucketClass
 apiVersion: objectstorage.k8s.io/v1alpha1
 metadata:
-  name: cosi-driver-test
+  name: cosi-driver-test-acccreate
   labels:
     app.kubernetes.io/part-of: cosi-driver-test
     app.kubernetes.io/name: cosi-driver-test
@@ -13,3 +13,9 @@ protocol:
   azureBlob:
     storageAccount: akmukhopobjstore
 deletionPolicy: delete
+driverName: azure-cosi-driver
+parameters: 
+  bucketunittype: storageaccount
+  storageaccountname: ag-cosi-acc
+  resourcegroup: aarongalang-rg
+  region: eastus
