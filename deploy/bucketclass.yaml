@@ -6,14 +6,8 @@ metadata:
   labels:
     app.kubernetes.io/part-of: cosi-driver-test
     app.kubernetes.io/name: cosi-driver-test
-provisioner: blob.cosi.azure.com
-allowedNamespaces:
-  - default
-protocol:
-  azureBlob:
-    storageAccount: akmukhopobjstore
+driverName: blob.cosi.azure.com
 deletionPolicy: delete
-driverName: azure-cosi-driver
 parameters: 
   bucketunittype: storageaccount
   storageaccountname: ag-cosi-acc
