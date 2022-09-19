@@ -13,4 +13,4 @@ parameters:
   storageaccountname: ag-cosi-acc
   resourcegroup: aarongalang-rg
   region: eastus
-  createbucket: true
+  createbucket: 'true'
