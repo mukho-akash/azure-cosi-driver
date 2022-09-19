@@ -20,7 +20,7 @@ import (
 type BucketClassParameters struct {
 	bucketUnitType                 constant.BucketUnitType
 	createBucket                   bool
-	createStorageAccount           bool
+	createStorageAccount           *bool
 	storageAccountName             string
 	region                         string
 	accessTier                     constant.AccessTier
@@ -85,8 +85,10 @@ func CreateBucket(ctx context.Context,
 
 	switch bucketClassParams.bucketUnitType {
 	case constant.Container:
+		klog.Info("Creating a container")
 		return createContainerBucket(ctx, bucketName, bucketClassParams, cloud)
 	case constant.StorageAccount:
+		klog.Info("Creating a storage account")
 		return createStorageAccountBucket(ctx, bucketName, bucketClassParams, cloud)
 	}
 	return "", status.Error(codes.InvalidArgument, "Invalid BucketUnitType")
@@ -152,9 +154,9 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 		case constant.CreateStorageAccountField:
 			if strings.EqualFold(v, TrueValue) {
-				BCParams.createStorageAccount = true
-			} else {
-				BCParams.createStorageAccount = false
+				BCParams.createStorageAccount = to.BoolPtr(true)
+			} else if strings.EqualFold(v, FalseValue) {
+				BCParams.createStorageAccount = to.BoolPtr(false)
 			}
 		case constant.StorageAccountNameField:
 			BCParams.storageAccountName = v
@@ -275,6 +277,13 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 		}
 	}
+
+	// If the unit type of bucket is StorageAccount and the create storage account is not set,
+	// We will create a storage account if not present.
+	if BCParams.bucketUnitType == constant.StorageAccount && BCParams.createStorageAccount == nil{
+		BCParams.createStorageAccount = to.BoolPtr(true)
+	}
+
 	return BCParams, nil
 }
 
@@ -415,6 +424,10 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 }
 
 func getAccountOptions(params *BucketClassParameters) *azure.AccountOptions {
+	createStorageAccount := false
+	if params.createStorageAccount != nil {
+		createStorageAccount = to.Bool(params.createStorageAccount)
+	}
 	options := &azure.AccountOptions{
 		Name:                      params.storageAccountName,
 		ResourceGroup:             params.resourceGroup,
@@ -428,6 +441,7 @@ func getAccountOptions(params *BucketClassParameters) *azure.AccountOptions {
 		IsHnsEnabled:              to.BoolPtr(params.isHnsEnabled),
 		EnableNfsV3:               to.BoolPtr(params.enableNfsV3),
 		EnableLargeFileShare:      params.enableLargeFileShare,
+		CreateAccount:             createStorageAccount,
 	}
 	return options
 }
