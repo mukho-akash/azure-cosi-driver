@@ -122,7 +122,7 @@ func TestParseBucketClassParameters(t *testing.T) {
 			testName:       "BucketUnitType Account",
 			parameters:     map[string]string{constant.BucketUnitTypeField: constant.StorageAccount.String()},
 			expectedErr:    nil,
-			expectedParams: BucketClassParameters{bucketUnitType: constant.StorageAccount},
+			expectedParams: BucketClassParameters{bucketUnitType: constant.StorageAccount, createStorageAccount: to.BoolPtr(true)},
 		},
 		{
 			testName:       "Create Bucket True",
@@ -334,6 +334,13 @@ func TestParseBucketClassParameters(t *testing.T) {
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}
+
+		if params != nil && test.expectedParams.createStorageAccount != nil && params.createStorageAccount != nil {
+			if to.Bool(test.expectedParams.createStorageAccount) == to.Bool(params.createStorageAccount) {
+				test.expectedParams.createStorageAccount = params.createStorageAccount
+			}
+		}
+
 		if err == nil && !reflect.DeepEqual(*params, test.expectedParams) {
 			t.Errorf("\nTestCase: %s\nExpected Params: %+v\nActual Params: %+v", test.testName, test.expectedParams, params)
 		}

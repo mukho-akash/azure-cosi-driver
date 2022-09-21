@@ -280,7 +280,7 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 
 	// If the unit type of bucket is StorageAccount and the create storage account is not set,
 	// We will create a storage account if not present.
-	if BCParams.bucketUnitType == constant.StorageAccount && BCParams.createStorageAccount == nil{
+	if BCParams.bucketUnitType == constant.StorageAccount && BCParams.createStorageAccount == nil {
 		BCParams.createStorageAccount = to.BoolPtr(true)
 	}
 
