@@ -1,0 +1,15 @@
+---
+kind: BucketClass
+apiVersion: objectstorage.k8s.io/v1alpha1
+metadata:
+  name: cosi-driver-test
+  labels:
+    app.kubernetes.io/part-of: cosi-driver-test
+    app.kubernetes.io/name: cosi-driver-test
+provisioner: blob.cosi.azure.com
+allowedNamespaces:
+  - default
+protocol:
+  azureBlob:
+    storageAccount: akmukhopobjstore
+deletionPolicy: delete
