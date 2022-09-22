@@ -2,7 +2,7 @@
 kind: BucketClass
 apiVersion: objectstorage.k8s.io/v1alpha1
 metadata:
-  name: cosi-driver-test-acccreate
+  name: cosi-driver-test-acc
   labels:
     app.kubernetes.io/part-of: cosi-driver-test
     app.kubernetes.io/name: cosi-driver-test

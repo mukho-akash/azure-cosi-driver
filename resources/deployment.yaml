@@ -51,6 +51,8 @@ spec:
       - name: objectstorage-provisioner-sidecar
         image: $(IMAGE_ORG)/objectstorage-sidecar:$(IMAGE_VERSION)
         imagePullPolicy: Always
+        args:
+        - "--v=5"
         env:
         - name: POD_NAMESPACE
           valueFrom:

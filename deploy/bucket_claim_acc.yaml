@@ -2,8 +2,8 @@
 kind: BucketClaim
 apiVersion: objectstorage.k8s.io/v1alpha1
 metadata:
-  name: cosi-driver-v2
+  name: cosi-driver-acc
 spec:
-  bucketClassName: cosi-driver-test-acccreate
+  bucketClassName: cosi-driver-test-acc
   protocols:
   - azure
