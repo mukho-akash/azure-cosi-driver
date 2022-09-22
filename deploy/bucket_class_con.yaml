@@ -2,7 +2,7 @@
 kind: BucketClass
 apiVersion: objectstorage.k8s.io/v1alpha1
 metadata:
-  name: cosi-driver-test-concreate
+  name: cosi-driver-test-con
   labels:
     app.kubernetes.io/part-of: cosi-driver-test
     app.kubernetes.io/name: cosi-driver-test
@@ -10,7 +10,7 @@ driverName: blob.cosi.azure.com
 deletionPolicy: delete
 parameters: 
   bucketunittype: container
-  storageaccountname: ag-cosi-acc
+  storageaccountname: agcosiacc
   resourcegroup: aarongalang-rg
   region: eastus
   createbucket: 'true'
