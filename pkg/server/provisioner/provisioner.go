@@ -70,15 +70,6 @@ func NewProvisionerServer(
 func (pr *provisioner) DriverCreateBucket(
 	ctx context.Context,
 	req *spec.DriverCreateBucketRequest) (*spec.DriverCreateBucketResponse, error) {
-	/* protocol := req.GetProtocol()
-	if protocol == nil {
-		return nil, status.Error(codes.InvalidArgument, "Protocol is nil")
-	}
-
-	azureBlob := protocol.GetAzureBlob()
-	if azureBlob == nil {
-		return nil, status.Error(codes.InvalidArgument, "Azure blob protocol is missing")
-	}*/
 
 	bucketName := req.GetName()
 	parameters := req.GetParameters()

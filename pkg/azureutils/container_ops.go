@@ -15,6 +15,7 @@ package azureutils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"time"
@@ -140,6 +141,12 @@ func createAzureContainer(
 		Access:   nil,
 	})
 	if err != nil {
+		var serr *azblob.StorageError
+		if errors.As(err, &serr) {
+			if serr.ErrorCode == azblob.StorageErrorCodeContainerAlreadyExists {
+				return containerClient.URL(), nil
+			}
+		}
 		return "", fmt.Errorf("Error creating container from containterURL : %s, Error : %v", containerClient.URL(), err)
 	}
 
