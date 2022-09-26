@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/part-of: cosi-driver-test
     app.kubernetes.io/name: cosi-driver-test
 driverName: blob.cosi.azure.com
-deletionPolicy: delete
+deletionPolicy: Delete
 parameters: 
   bucketunittype: container
   storageaccountname: ag-cosi-acc
