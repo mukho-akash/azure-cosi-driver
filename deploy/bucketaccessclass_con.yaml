@@ -7,6 +7,6 @@ metadata:
     app.kubernetes.io/part-of: cosi-driver-test
     app.kubernetes.io/name: cosi-driver-test
 driverName: blob.cosi.azure.com
-authenticationType: key
+authenticationType: Key
 parameters: 
   bucketunittype: container
