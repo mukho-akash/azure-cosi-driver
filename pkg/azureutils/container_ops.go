@@ -45,7 +45,22 @@ func createContainerBucket(
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not ensure storage account %s exists: %v", accOptions.Name, err))
 	}
 	containerParams := make(map[string]string) //NOTE: Container parameters still need to be filled/implemented
-	return createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
+
+	container, err := createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
+	if err != nil {
+		return "", err
+	}
+	id := bucketID{
+		subID:         cloud.SubscriptionID,
+		resourceGroup: parameters.resourceGroup,
+		bucketID:      container,
+	}
+	base64ID, err := id.encode()
+	if err != nil {
+		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
+	}
+
+	return base64ID, nil
 }
 
 func DeleteContainerBucket(

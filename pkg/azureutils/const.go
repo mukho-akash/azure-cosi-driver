@@ -14,6 +14,8 @@
 package azureutils
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -35,6 +37,37 @@ const (
 	EnableNFSV3Field           = "enablenfsv3"
 	EnableLargeFileSharesField = "enablelargefileshares"
 )
+
+// bucketID is passed in DriverCreateBucket as a struct with subID and resource group for deletion
+type bucketID struct {
+	subID         string `json:"subscriptionID"`
+	resourceGroup string `json:"resourceGroup"`
+	bucketID      string `json:"bucketID"`
+}
+
+// Marshals bucketID struct into json bytes, then encodes into base64
+func (id *bucketID) encode() (string, error) {
+	data, err := json.Marshal(id)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(data), nil
+}
+
+// Marshals bucketID struct into json bytes, then encodes into base64
+func decodeToBucketID(id string) (*bucketID, error) {
+	data, err := base64.StdEncoding.DecodeString(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var bID *bucketID
+	json.Unmarshal(data, bID)
+	if err != nil {
+		return nil, err
+	}
+	return bID, nil
+}
 
 // ConvertTagsToMap convert the tags from string to map
 // the valid tags fomat is "key1=value1,key2=value2", which could be converted to

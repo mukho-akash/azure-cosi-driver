@@ -44,7 +44,18 @@ func createStorageAccountBucket(ctx context.Context,
 	if err != nil {
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
-	return accName, nil
+
+	id := bucketID{
+		subID:         cloud.SubscriptionID,
+		resourceGroup: parameters.resourceGroup,
+		bucketID:      accName,
+	}
+	base64ID, err := id.encode()
+	if err != nil {
+		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
+	}
+
+	return base64ID, nil
 }
 
 // creates SAS and returns service client with sas
