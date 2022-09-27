@@ -106,11 +106,12 @@ func DeleteBucket(ctx context.Context,
 		return status.Error(codes.InvalidArgument, "Individual Blobs unsupported. Please use Blob Containers or Storage Accounts instead.")
 	}
 
-	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketID)
 	var err error
 	if container == "" { //container not present, deleting storage account
+		klog.Info("Deleting bucket of type storage account")
 		err = DeleteStorageAccount(ctx, account, cloud)
 	} else { //container name present, deleting container
+		klog.Info("Deleting bucket of type container")
 		err = DeleteContainerBucket(ctx, bucketID, cloud)
 	}
 	return err
@@ -125,8 +126,10 @@ func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[str
 
 	switch bucketAccessClassParams.bucketUnitType {
 	case constant.Container:
+		klog.Info("Creating SASURL for storage account")
 		return createContainerSASURL(ctx, bucketID, bucketAccessClassParams)
 	case constant.StorageAccount:
+		klog.Info("Creating SASURL for container")
 		return createAccountSASURL(ctx, bucketID, bucketAccessClassParams)
 	}
 	return "", "", status.Error(codes.InvalidArgument, "invalid bucket type")

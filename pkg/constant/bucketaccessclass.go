@@ -20,5 +20,5 @@ const (
 	AllowObjectSignedResourceTypeField    = "allowobjectsignedresourcetypefield"
 	KeyField                              = "key"
 	CredentialType                        = "azure"
-	SASURL                                = "sasurl"
+	AccessToken                           = "accessToken"
 )
