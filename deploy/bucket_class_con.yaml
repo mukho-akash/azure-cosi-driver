@@ -10,7 +10,6 @@ driverName: blob.cosi.azure.com
 deletionPolicy: Delete
 parameters: 
   bucketunittype: container
-  storageaccountname: agcosiacc
-  resourcegroup: aarongalang-rg
+  storageaccountname: cositestcon
+  resourcegroup: cosi-test
   region: eastus
-  createbucket: 'true'
