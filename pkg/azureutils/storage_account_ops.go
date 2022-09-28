@@ -16,6 +16,7 @@ package azureutils
 import (
 	"context"
 	"fmt"
+	"project/azure-cosi-driver/pkg/types"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -26,10 +27,10 @@ import (
 
 func DeleteStorageAccount(
 	ctx context.Context,
-	account string,
+	id *types.BucketID,
 	cloud *azure.Cloud) error {
 	SAClient := cloud.StorageAccountClient
-	err := SAClient.Delete(ctx, cloud.SubscriptionID, cloud.ResourceGroup, account)
+	err := SAClient.Delete(ctx, id.SubID, id.ResourceGroup, id.URL)
 	if err != nil {
 		return err.Error()
 	}
@@ -44,7 +45,22 @@ func createStorageAccountBucket(ctx context.Context,
 	if err != nil {
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
-	return accName, nil
+
+	id := types.BucketID{
+		ResourceGroup: parameters.resourceGroup,
+		URL:           accName,
+	}
+	if parameters.subscriptionID != "" {
+		id.SubID = parameters.subscriptionID
+	} else {
+		id.SubID = cloud.SubscriptionID
+	}
+	base64ID, err := id.Encode()
+	if err != nil {
+		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
+	}
+
+	return base64ID, nil
 }
 
 // creates SAS and returns service client with sas

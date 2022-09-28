@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"project/azure-cosi-driver/pkg/types"
 	"regexp"
 	"time"
 
@@ -45,22 +46,42 @@ func createContainerBucket(
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not ensure storage account %s exists: %v", accOptions.Name, err))
 	}
 	containerParams := make(map[string]string) //NOTE: Container parameters still need to be filled/implemented
-	return createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
+
+	container, err := createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
+	if err != nil {
+		return "", err
+	}
+
+	id := types.BucketID{
+		ResourceGroup: parameters.resourceGroup,
+		URL:           container,
+	}
+	if parameters.subscriptionID != "" {
+		id.SubID = parameters.subscriptionID
+	} else {
+		id.SubID = cloud.SubscriptionID
+	}
+	base64ID, err := id.Encode()
+	if err != nil {
+		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
+	}
+
+	return base64ID, nil
 }
 
 func DeleteContainerBucket(
 	ctx context.Context,
-	bucketID string,
+	bucketID *types.BucketID,
 	cloud *azure.Cloud) error {
-	// Get storage account name from bucketID
-	storageAccountName := getStorageAccountNameFromContainerURL(bucketID)
+	// Get storage account name from bucket url
+	storageAccountName := getStorageAccountNameFromContainerURL(bucketID.URL)
 	// Get access keys for the storage account
-	accessKey, err := cloud.GetStorageAccesskey(ctx, cloud.SubscriptionID, storageAccountName, cloud.ResourceGroup)
+	accessKey, err := cloud.GetStorageAccesskey(ctx, bucketID.SubID, storageAccountName, bucketID.ResourceGroup)
 	if err != nil {
 		return err
 	}
 
-	containerName := getContainerNameFromContainerURL(bucketID)
+	containerName := getContainerNameFromContainerURL(bucketID.URL)
 	err = deleteAzureContainer(ctx, storageAccountName, accessKey, containerName)
 	if err != nil {
 		return fmt.Errorf("Error deleting container %s in storage account %s : %v", containerName, storageAccountName, err)

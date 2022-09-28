@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 	"reflect"
 	"testing"
 
@@ -59,9 +60,16 @@ func TestCreateBucket(t *testing.T) {
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
-		url, err := CreateBucket(context.Background(), constant.ValidAccount, test.params, cloud)
+		base64ID, err := CreateBucket(context.Background(), constant.ValidAccount, test.params, cloud)
+
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
+		}
+
+		id, _ := types.DecodeToBucketID(base64ID)
+		url := ""
+		if id != nil {
+			url = id.URL
 		}
 		if err == nil && !reflect.DeepEqual(url, test.expectedURL) {
 			t.Errorf("\nTestCase: %s\nExpected URL: %v\nActual URL: %v", test.testName, test.expectedURL, url)
@@ -72,22 +80,34 @@ func TestCreateBucket(t *testing.T) {
 func TestDeleteBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
-		bucket      string
+		id          *types.BucketID
 		expectedErr error
 	}{
 		{
-			testName:    "Individual Blob Unit Type Unsupported",
-			bucket:      constant.ValidBlobURL,
+			testName: "Individual Blob Unit Type Unsupported",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidBlobURL,
+			},
 			expectedErr: status.Error(codes.InvalidArgument, "Individual Blobs unsupported. Please use Blob Containers or Storage Accounts instead."),
 		},
 		{
-			testName:    "Delete storage Account Bucket",
-			bucket:      constant.ValidAccountURL,
+			testName: "Delete storage Account Bucket",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidAccountURL,
+			},
 			expectedErr: nil,
 		},
 		{
-			testName:    "Delete Container Bucket (Invalid credentials)",
-			bucket:      constant.ValidContainerURL,
+			testName: "Delete Container Bucket (Invalid credentials)",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidContainerURL,
+			},
 			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
 		},
 	}
@@ -98,7 +118,12 @@ func TestDeleteBucket(t *testing.T) {
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
-		err := DeleteBucket(context.Background(), test.bucket, cloud)
+		base64ID, err := test.id.Encode()
+		if err != nil {
+			t.Errorf("encoding error: %s", err.Error())
+		}
+
+		err = DeleteBucket(context.Background(), base64ID, cloud)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}

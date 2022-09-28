@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 
 	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-09-01/storage"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -38,6 +39,11 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 
 	cl.EXPECT().
 		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccount)).
+		Return(nil).
+		AnyTimes()
+
+	cl.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccountURL)).
 		Return(nil).
 		AnyTimes()
 
@@ -78,17 +84,25 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 func TestDeleteStorageAccount(t *testing.T) {
 	tests := []struct {
 		testName    string
-		account     string
+		id          *types.BucketID
 		expectedErr error
 	}{
 		{
-			testName:    "Valid Account",
-			account:     constant.ValidAccount,
+			testName: "Valid Account",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidAccount,
+			},
 			expectedErr: nil,
 		},
 		{
-			testName:    "Invalid Account",
-			account:     constant.InvalidAccount,
+			testName: "Invalid Account",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.InvalidAccount,
+			},
 			expectedErr: retry.GetError(&http.Response{}, status.Error(codes.NotFound, "could not find storage account")).Error(),
 		},
 	}
@@ -99,7 +113,7 @@ func TestDeleteStorageAccount(t *testing.T) {
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
-		err := DeleteStorageAccount(context.Background(), test.account, cloud)
+		err := DeleteStorageAccount(context.Background(), test.id, cloud)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected: %v\nActual: %v", test.testName, test.expectedErr, err)
 		}
@@ -131,9 +145,15 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
-		accName, err := createStorageAccountBucket(context.Background(), test.account, &BucketClassParameters{storageAccountName: test.account}, cloud)
+		base64ID, err := createStorageAccountBucket(context.Background(), test.account, &BucketClassParameters{storageAccountName: test.account}, cloud)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
+		}
+
+		id, _ := types.DecodeToBucketID(base64ID)
+		accName := ""
+		if id != nil {
+			accName = id.URL
 		}
 		if err == nil && !reflect.DeepEqual(accName, test.account) {
 			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.account, accName)
