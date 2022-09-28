@@ -62,7 +62,7 @@ func decodeToBucketID(id string) (*BucketID, error) {
 	}
 
 	bID := &BucketID{}
-	json.Unmarshal(data, bID)
+	err = json.Unmarshal(data, bID)
 	if err != nil {
 		return nil, err
 	}
