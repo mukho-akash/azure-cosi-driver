@@ -5,6 +5,7 @@ const (
 	BucketUnitTypeField                 = "bucketunittype"
 	CreateBucketField                   = "createbucket"
 	CreateStorageAccountField           = "createstorageaccount"
+	SubscriptionIDField                 = "subscriptionid"
 	StorageAccountNameField             = "storageaccountname"
 	ContainerNameField                  = "containername"
 	RegionField                         = "region"
