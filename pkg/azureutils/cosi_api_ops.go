@@ -99,6 +99,7 @@ func DeleteBucket(ctx context.Context,
 	bucketID string,
 	cloud *azure.Cloud) error {
 	//decode bucketID
+	klog.Info("Decoding bucketID from base64 string to BucketID struct")
 	id, err := types.DecodeToBucketID(bucketID)
 	if err != nil {
 		return err
