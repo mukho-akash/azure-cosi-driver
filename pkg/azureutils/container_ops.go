@@ -50,10 +50,10 @@ func createContainerBucket(
 	if err != nil {
 		return "", err
 	}
-	id := bucketID{
-		subID:         cloud.SubscriptionID,
-		resourceGroup: parameters.resourceGroup,
-		bucketID:      container,
+	id := BucketID{
+		SubID:         cloud.SubscriptionID,
+		ResourceGroup: parameters.resourceGroup,
+		BucketID:      container,
 	}
 	base64ID, err := id.encode()
 	if err != nil {

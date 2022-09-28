@@ -45,10 +45,10 @@ func createStorageAccountBucket(ctx context.Context,
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
 
-	id := bucketID{
-		subID:         cloud.SubscriptionID,
-		resourceGroup: parameters.resourceGroup,
-		bucketID:      accName,
+	id := BucketID{
+		SubID:         cloud.SubscriptionID,
+		ResourceGroup: parameters.resourceGroup,
+		BucketID:      accName,
 	}
 	base64ID, err := id.encode()
 	if err != nil {

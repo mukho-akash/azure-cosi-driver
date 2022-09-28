@@ -2,11 +2,32 @@ package azureutils
 
 import (
 	"fmt"
+	"project/azure-cosi-driver/pkg/constant"
 	"reflect"
 	"testing"
 
 	"github.com/Azure/go-autorest/autorest/to"
 )
+
+func TestEncode(t *testing.T) {
+	id := &BucketID{
+		SubID:         "subid",
+		ResourceGroup: constant.ValidResourceGroup,
+		BucketID:      constant.ValidContainerURL,
+	}
+	var id2 *BucketID
+	data, err := id.encode()
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	id2, err = decodeToBucketID(data)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if id2.BucketID != id.BucketID {
+		t.Errorf("\nExpected Output: %v\nActual Output: %v", id.BucketID, id2.BucketID)
+	}
+}
 
 func TestConvertTagsToMap(t *testing.T) {
 	tests := []struct {

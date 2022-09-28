@@ -39,14 +39,14 @@ const (
 )
 
 // bucketID is passed in DriverCreateBucket as a struct with subID and resource group for deletion
-type bucketID struct {
-	subID         string `json:"subscriptionID"`
-	resourceGroup string `json:"resourceGroup"`
-	bucketID      string `json:"bucketID"`
+type BucketID struct {
+	SubID         string `json:"subscriptionID"`
+	ResourceGroup string `json:"resourceGroup"`
+	BucketID      string `json:"bucketID"`
 }
 
 // Marshals bucketID struct into json bytes, then encodes into base64
-func (id *bucketID) encode() (string, error) {
+func (id *BucketID) encode() (string, error) {
 	data, err := json.Marshal(id)
 	if err != nil {
 		return "", err
@@ -54,14 +54,14 @@ func (id *bucketID) encode() (string, error) {
 	return base64.StdEncoding.EncodeToString(data), nil
 }
 
-// Marshals bucketID struct into json bytes, then encodes into base64
-func decodeToBucketID(id string) (*bucketID, error) {
+// Decodes base64 string to bucketID pointer struct
+func decodeToBucketID(id string) (*BucketID, error) {
 	data, err := base64.StdEncoding.DecodeString(id)
 	if err != nil {
 		return nil, err
 	}
 
-	var bID *bucketID
+	bID := &BucketID{}
 	json.Unmarshal(data, bID)
 	if err != nil {
 		return nil, err

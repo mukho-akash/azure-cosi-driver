@@ -59,10 +59,14 @@ func TestCreateBucket(t *testing.T) {
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
-		url, err := CreateBucket(context.Background(), constant.ValidAccount, test.params, cloud)
+		base64ID, err := CreateBucket(context.Background(), constant.ValidAccount, test.params, cloud)
+
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}
+
+		id, _ := decodeToBucketID(base64ID)
+		url := id.BucketID
 		if err == nil && !reflect.DeepEqual(url, test.expectedURL) {
 			t.Errorf("\nTestCase: %s\nExpected URL: %v\nActual URL: %v", test.testName, test.expectedURL, url)
 		}
