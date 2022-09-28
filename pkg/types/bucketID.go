@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 )
 
-// bucketID is passed in DriverCreateBucket as a struct with subID and resource group for deletion
+// bucketID is returned by the DriverCreateBucket function call as an encoded string with the subID, resource group and the URL of the bucket.
+// These details are required by DriverDeleteBucket and DriverGrantBucketAccess.
 type BucketID struct {
 	SubID         string `json:"subscriptionID"`
 	ResourceGroup string `json:"resourceGroup"`
