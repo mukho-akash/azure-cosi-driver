@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 
 	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-09-01/storage"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -83,12 +84,12 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 func TestDeleteStorageAccount(t *testing.T) {
 	tests := []struct {
 		testName    string
-		id          *BucketID
+		id          *types.BucketID
 		expectedErr error
 	}{
 		{
 			testName: "Valid Account",
-			id: &BucketID{
+			id: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidAccount,
@@ -97,7 +98,7 @@ func TestDeleteStorageAccount(t *testing.T) {
 		},
 		{
 			testName: "Invalid Account",
-			id: &BucketID{
+			id: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.InvalidAccount,
@@ -149,7 +150,7 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
 		}
 
-		id, _ := decodeToBucketID(base64ID)
+		id, _ := types.DecodeToBucketID(base64ID)
 		accName := ""
 		if id != nil {
 			accName = id.URL

@@ -3,6 +3,7 @@ package azureutils
 import (
 	"fmt"
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 	"reflect"
 	"testing"
 
@@ -10,17 +11,17 @@ import (
 )
 
 func TestEncode(t *testing.T) {
-	id := &BucketID{
+	id := &types.BucketID{
 		SubID:         "subid",
 		ResourceGroup: constant.ValidResourceGroup,
 		URL:           constant.ValidContainerURL,
 	}
-	var id2 *BucketID
+	var id2 *types.BucketID
 	data, err := id.Encode()
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	id2, err = decodeToBucketID(data)
+	id2, err = types.DecodeToBucketID(data)
 	if err != nil {
 		t.Errorf(err.Error())
 	}

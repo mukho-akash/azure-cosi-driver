@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 	"reflect"
 	"testing"
 
@@ -52,13 +53,13 @@ func TestCreateContainerBucket(t *testing.T) {
 func TestDeleteContainerBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
-		id          *BucketID
+		id          *types.BucketID
 		clientNil   bool
 		expectedErr error
 	}{
 		{
 			testName: "Storage Account Client is nil",
-			id: &BucketID{
+			id: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidContainerURL,
@@ -68,7 +69,7 @@ func TestDeleteContainerBucket(t *testing.T) {
 		},
 		{
 			testName: "Invalid Credentials/Key",
-			id: &BucketID{
+			id: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidContainerURL,

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"project/azure-cosi-driver/pkg/azureutils"
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 	"reflect"
 	"sync"
 	"testing"
@@ -137,12 +137,12 @@ func TestDriverCreateBucket(t *testing.T) {
 func TestDriverDeleteBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
-		bucketID    *azureutils.BucketID
+		bucketID    *types.BucketID
 		expectedErr error
 	}{
 		{
 			testName: "Delete Storage Account Bucket",
-			bucketID: &azureutils.BucketID{
+			bucketID: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidAccountURL,
@@ -151,7 +151,7 @@ func TestDriverDeleteBucket(t *testing.T) {
 		},
 		{
 			testName: "Delete Container Bucket",
-			bucketID: &azureutils.BucketID{
+			bucketID: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidContainerURL,

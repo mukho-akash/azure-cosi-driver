@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -98,7 +99,7 @@ func DeleteBucket(ctx context.Context,
 	bucketID string,
 	cloud *azure.Cloud) error {
 	//decode bucketID
-	id, err := decodeToBucketID(bucketID)
+	id, err := types.DecodeToBucketID(bucketID)
 	if err != nil {
 		return err
 	}

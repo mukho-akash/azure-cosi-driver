@@ -16,6 +16,7 @@ package azureutils
 import (
 	"context"
 	"fmt"
+	"project/azure-cosi-driver/pkg/types"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -26,7 +27,7 @@ import (
 
 func DeleteStorageAccount(
 	ctx context.Context,
-	id *BucketID,
+	id *types.BucketID,
 	cloud *azure.Cloud) error {
 	SAClient := cloud.StorageAccountClient
 	err := SAClient.Delete(ctx, id.SubID, id.ResourceGroup, id.URL)
@@ -45,7 +46,7 @@ func createStorageAccountBucket(ctx context.Context,
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
 
-	id := BucketID{
+	id := types.BucketID{
 		SubID:         cloud.SubscriptionID,
 		ResourceGroup: parameters.resourceGroup,
 		URL:           accName,

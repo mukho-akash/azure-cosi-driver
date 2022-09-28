@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 	"reflect"
 	"testing"
 
@@ -65,7 +66,7 @@ func TestCreateBucket(t *testing.T) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}
 
-		id, _ := decodeToBucketID(base64ID)
+		id, _ := types.DecodeToBucketID(base64ID)
 		url := ""
 		if id != nil {
 			url = id.URL
@@ -79,12 +80,12 @@ func TestCreateBucket(t *testing.T) {
 func TestDeleteBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
-		id          *BucketID
+		id          *types.BucketID
 		expectedErr error
 	}{
 		{
 			testName: "Individual Blob Unit Type Unsupported",
-			id: &BucketID{
+			id: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidBlobURL,
@@ -93,7 +94,7 @@ func TestDeleteBucket(t *testing.T) {
 		},
 		{
 			testName: "Delete storage Account Bucket",
-			id: &BucketID{
+			id: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidAccountURL,
@@ -102,7 +103,7 @@ func TestDeleteBucket(t *testing.T) {
 		},
 		{
 			testName: "Delete Container Bucket (Invalid credentials)",
-			id: &BucketID{
+			id: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidContainerURL,

@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"project/azure-cosi-driver/pkg/types"
 	"regexp"
 	"time"
 
@@ -50,7 +51,7 @@ func createContainerBucket(
 	if err != nil {
 		return "", err
 	}
-	id := BucketID{
+	id := types.BucketID{
 		SubID:         cloud.SubscriptionID,
 		ResourceGroup: parameters.resourceGroup,
 		URL:           container,
@@ -65,7 +66,7 @@ func createContainerBucket(
 
 func DeleteContainerBucket(
 	ctx context.Context,
-	bucketID *BucketID,
+	bucketID *types.BucketID,
 	cloud *azure.Cloud) error {
 	// Get storage account name from bucket url
 	storageAccountName := getStorageAccountNameFromContainerURL(bucketID.URL)
