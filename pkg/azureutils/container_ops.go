@@ -53,7 +53,7 @@ func createContainerBucket(
 	id := BucketID{
 		SubID:         cloud.SubscriptionID,
 		ResourceGroup: parameters.resourceGroup,
-		BucketID:      container,
+		URL:           container,
 	}
 	base64ID, err := id.encode()
 	if err != nil {

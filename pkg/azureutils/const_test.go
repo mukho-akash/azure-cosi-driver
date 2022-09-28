@@ -13,7 +13,7 @@ func TestEncode(t *testing.T) {
 	id := &BucketID{
 		SubID:         "subid",
 		ResourceGroup: constant.ValidResourceGroup,
-		BucketID:      constant.ValidContainerURL,
+		URL:           constant.ValidContainerURL,
 	}
 	var id2 *BucketID
 	data, err := id.encode()
@@ -24,8 +24,8 @@ func TestEncode(t *testing.T) {
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-	if id2.BucketID != id.BucketID {
-		t.Errorf("\nExpected Output: %v\nActual Output: %v", id.BucketID, id2.BucketID)
+	if id2.URL != id.URL {
+		t.Errorf("\nExpected Output: %v\nActual Output: %v", id.URL, id2.URL)
 	}
 }
 

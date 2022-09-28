@@ -42,7 +42,7 @@ const (
 type BucketID struct {
 	SubID         string `json:"subscriptionID"`
 	ResourceGroup string `json:"resourceGroup"`
-	BucketID      string `json:"bucketID"`
+	URL           string `json:"url"`
 }
 
 // Marshals bucketID struct into json bytes, then encodes into base64
