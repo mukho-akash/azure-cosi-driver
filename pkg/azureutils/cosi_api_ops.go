@@ -22,6 +22,7 @@ type BucketClassParameters struct {
 	bucketUnitType                 constant.BucketUnitType
 	createBucket                   bool
 	createStorageAccount           *bool
+	subscriptionID                 string
 	storageAccountName             string
 	region                         string
 	accessTier                     constant.AccessTier
@@ -168,6 +169,8 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			} else if strings.EqualFold(v, FalseValue) {
 				BCParams.createStorageAccount = to.BoolPtr(false)
 			}
+		case constant.SubscriptionIDField:
+			BCParams.subscriptionID = v
 		case constant.StorageAccountNameField:
 			BCParams.storageAccountName = v
 		case constant.RegionField:

@@ -47,9 +47,13 @@ func createStorageAccountBucket(ctx context.Context,
 	}
 
 	id := types.BucketID{
-		SubID:         cloud.SubscriptionID,
 		ResourceGroup: parameters.resourceGroup,
 		URL:           accName,
+	}
+	if parameters.subscriptionID != "" {
+		id.SubID = parameters.subscriptionID
+	} else {
+		id.SubID = cloud.SubscriptionID
 	}
 	base64ID, err := id.Encode()
 	if err != nil {
