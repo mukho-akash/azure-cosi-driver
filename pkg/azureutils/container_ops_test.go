@@ -52,19 +52,27 @@ func TestCreateContainerBucket(t *testing.T) {
 func TestDeleteContainerBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
-		url         string
+		id          *BucketID
 		clientNil   bool
 		expectedErr error
 	}{
 		{
-			testName:    "Storage Account Client is nil",
-			url:         constant.ValidContainerURL,
+			testName: "Storage Account Client is nil",
+			id: &BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidContainerURL,
+			},
 			clientNil:   true,
 			expectedErr: fmt.Errorf("StorageAccountClient is nil"),
 		},
 		{
-			testName:    "Invalid Credentials/Key",
-			url:         constant.ValidContainerURL,
+			testName: "Invalid Credentials/Key",
+			id: &BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidContainerURL,
+			},
 			clientNil:   false,
 			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
 		},
@@ -82,7 +90,7 @@ func TestDeleteContainerBucket(t *testing.T) {
 			cloud.StorageAccountClient = nil
 		}
 
-		err := DeleteContainerBucket(context.Background(), test.url, cloud)
+		err := DeleteContainerBucket(context.Background(), test.id, cloud)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}

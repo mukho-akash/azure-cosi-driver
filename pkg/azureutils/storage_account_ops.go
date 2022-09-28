@@ -26,10 +26,10 @@ import (
 
 func DeleteStorageAccount(
 	ctx context.Context,
-	account string,
+	id *BucketID,
 	cloud *azure.Cloud) error {
 	SAClient := cloud.StorageAccountClient
-	err := SAClient.Delete(ctx, cloud.SubscriptionID, cloud.ResourceGroup, account)
+	err := SAClient.Delete(ctx, id.SubID, id.ResourceGroup, id.URL)
 	if err != nil {
 		return err.Error()
 	}
@@ -50,7 +50,7 @@ func createStorageAccountBucket(ctx context.Context,
 		ResourceGroup: parameters.resourceGroup,
 		URL:           accName,
 	}
-	base64ID, err := id.encode()
+	base64ID, err := id.Encode()
 	if err != nil {
 		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
 	}

@@ -42,6 +42,11 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 		AnyTimes()
 
 	cl.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccountURL)).
+		Return(nil).
+		AnyTimes()
+
+	cl.EXPECT().
 		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Not(constant.ValidAccount)).
 		Return(retry.GetError(&http.Response{}, status.Error(codes.NotFound, "could not find storage account"))).
 		AnyTimes()
@@ -78,17 +83,25 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 func TestDeleteStorageAccount(t *testing.T) {
 	tests := []struct {
 		testName    string
-		account     string
+		id          *BucketID
 		expectedErr error
 	}{
 		{
-			testName:    "Valid Account",
-			account:     constant.ValidAccount,
+			testName: "Valid Account",
+			id: &BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidAccount,
+			},
 			expectedErr: nil,
 		},
 		{
-			testName:    "Invalid Account",
-			account:     constant.InvalidAccount,
+			testName: "Invalid Account",
+			id: &BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.InvalidAccount,
+			},
 			expectedErr: retry.GetError(&http.Response{}, status.Error(codes.NotFound, "could not find storage account")).Error(),
 		},
 	}
@@ -99,7 +112,7 @@ func TestDeleteStorageAccount(t *testing.T) {
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
-		err := DeleteStorageAccount(context.Background(), test.account, cloud)
+		err := DeleteStorageAccount(context.Background(), test.id, cloud)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected: %v\nActual: %v", test.testName, test.expectedErr, err)
 		}

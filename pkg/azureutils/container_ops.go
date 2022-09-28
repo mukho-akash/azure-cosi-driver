@@ -55,7 +55,7 @@ func createContainerBucket(
 		ResourceGroup: parameters.resourceGroup,
 		URL:           container,
 	}
-	base64ID, err := id.encode()
+	base64ID, err := id.Encode()
 	if err != nil {
 		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
 	}
@@ -65,17 +65,17 @@ func createContainerBucket(
 
 func DeleteContainerBucket(
 	ctx context.Context,
-	bucketID string,
+	bucketID *BucketID,
 	cloud *azure.Cloud) error {
-	// Get storage account name from bucketID
-	storageAccountName := getStorageAccountNameFromContainerURL(bucketID)
+	// Get storage account name from bucket url
+	storageAccountName := getStorageAccountNameFromContainerURL(bucketID.URL)
 	// Get access keys for the storage account
-	accessKey, err := cloud.GetStorageAccesskey(ctx, cloud.SubscriptionID, storageAccountName, cloud.ResourceGroup)
+	accessKey, err := cloud.GetStorageAccesskey(ctx, bucketID.SubID, storageAccountName, bucketID.ResourceGroup)
 	if err != nil {
 		return err
 	}
 
-	containerName := getContainerNameFromContainerURL(bucketID)
+	containerName := getContainerNameFromContainerURL(bucketID.URL)
 	err = deleteAzureContainer(ctx, storageAccountName, accessKey, containerName)
 	if err != nil {
 		return fmt.Errorf("Error deleting container %s in storage account %s : %v", containerName, storageAccountName, err)

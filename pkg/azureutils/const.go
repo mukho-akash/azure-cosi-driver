@@ -46,7 +46,7 @@ type BucketID struct {
 }
 
 // Marshals bucketID struct into json bytes, then encodes into base64
-func (id *BucketID) encode() (string, error) {
+func (id *BucketID) Encode() (string, error) {
 	data, err := json.Marshal(id)
 	if err != nil {
 		return "", err

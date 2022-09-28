@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"project/azure-cosi-driver/pkg/azureutils"
 	"project/azure-cosi-driver/pkg/constant"
 	"reflect"
 	"sync"
@@ -26,6 +27,11 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 
 	cl.EXPECT().
 		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccount)).
+		Return(nil).
+		AnyTimes()
+
+	cl.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccountURL)).
 		Return(nil).
 		AnyTimes()
 
@@ -131,17 +137,25 @@ func TestDriverCreateBucket(t *testing.T) {
 func TestDriverDeleteBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
-		bucketID    string
+		bucketID    *azureutils.BucketID
 		expectedErr error
 	}{
 		{
-			testName:    "Delete Storage Account Bucket",
-			bucketID:    constant.ValidAccountURL,
+			testName: "Delete Storage Account Bucket",
+			bucketID: &azureutils.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidAccountURL,
+			},
 			expectedErr: nil,
 		},
 		{
-			testName:    "Delete Container Bucket",
-			bucketID:    constant.ValidContainerURL,
+			testName: "Delete Container Bucket",
+			bucketID: &azureutils.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidContainerURL,
+			},
 			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
 		},
 	}
@@ -150,8 +164,9 @@ func TestDriverDeleteBucket(t *testing.T) {
 	pr := newFakeProvisioner(ctrl)
 
 	for _, test := range tests {
+		data, _ := test.bucketID.Encode()
 		resp, err := pr.DriverDeleteBucket(context.Background(), &spec.DriverDeleteBucketRequest{
-			BucketId: test.bucketID,
+			BucketId: data,
 		})
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)

@@ -5,6 +5,8 @@ const (
 	InvalidAccount     = "invalidaccount"
 	ValidContainer     = "validcontainer"
 	InvalidContainer   = "invalidcontainer"
+	ValidSub           = "validsub"
+	InvalidSub         = "invalidsub"
 	ValidAccountType   = "standardgeneral-purposev2"
 	ValidBlob          = "validblob"
 	ValidResourceGroup = "resourcegroup"

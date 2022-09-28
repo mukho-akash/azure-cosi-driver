@@ -16,7 +16,7 @@ func TestEncode(t *testing.T) {
 		URL:           constant.ValidContainerURL,
 	}
 	var id2 *BucketID
-	data, err := id.encode()
+	data, err := id.Encode()
 	if err != nil {
 		t.Errorf(err.Error())
 	}

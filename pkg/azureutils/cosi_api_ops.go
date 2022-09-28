@@ -97,8 +97,14 @@ func CreateBucket(ctx context.Context,
 func DeleteBucket(ctx context.Context,
 	bucketID string,
 	cloud *azure.Cloud) error {
+	//decode bucketID
+	id, err := decodeToBucketID(bucketID)
+	if err != nil {
+		return err
+	}
+
 	//determine if the bucket is an account or a blob container
-	account, container, blob := parsecontainerurl(bucketID)
+	account, container, blob := parsecontainerurl(id.URL)
 	if account == "" {
 		return status.Error(codes.InvalidArgument, "Storage Account required")
 	}
@@ -107,11 +113,10 @@ func DeleteBucket(ctx context.Context,
 	}
 
 	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketID)
-	var err error
 	if container == "" { //container not present, deleting storage account
-		err = DeleteStorageAccount(ctx, account, cloud)
+		err = DeleteStorageAccount(ctx, id, cloud)
 	} else { //container name present, deleting container
-		err = DeleteContainerBucket(ctx, bucketID, cloud)
+		err = DeleteContainerBucket(ctx, id, cloud)
 	}
 	return err
 }
