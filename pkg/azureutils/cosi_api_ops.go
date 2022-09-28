@@ -106,6 +106,7 @@ func DeleteBucket(ctx context.Context,
 	}
 
 	//determine if the bucket is an account or a blob container
+	klog.Info("Parsing Bucket URL")
 	account, container, blob := parsecontainerurl(id.URL)
 	if account == "" {
 		return status.Error(codes.InvalidArgument, "Storage Account required")
