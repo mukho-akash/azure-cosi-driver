@@ -66,7 +66,10 @@ func TestCreateBucket(t *testing.T) {
 		}
 
 		id, _ := decodeToBucketID(base64ID)
-		url := id.URL
+		url := ""
+		if id != nil {
+			url = id.URL
+		}
 		if err == nil && !reflect.DeepEqual(url, test.expectedURL) {
 			t.Errorf("\nTestCase: %s\nExpected URL: %v\nActual URL: %v", test.testName, test.expectedURL, url)
 		}

@@ -150,7 +150,10 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 		}
 
 		id, _ := decodeToBucketID(base64ID)
-		accName := id.URL
+		accName := ""
+		if id != nil {
+			accName = id.URL
+		}
 		if err == nil && !reflect.DeepEqual(accName, test.account) {
 			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.account, accName)
 		}
