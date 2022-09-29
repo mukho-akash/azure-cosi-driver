@@ -116,10 +116,11 @@ func DeleteBucket(ctx context.Context,
 		return status.Error(codes.InvalidArgument, "Individual Blobs unsupported. Please use Blob Containers or Storage Accounts instead.")
 	}
 
-	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketID)
 	if container == "" { //container not present, deleting storage account
+		klog.Info("Deleting bucket of type storage account")
 		err = DeleteStorageAccount(ctx, id, cloud)
 	} else { //container name present, deleting container
+		klog.Info("Deleting bucket of type container")
 		err = DeleteContainerBucket(ctx, id, cloud)
 	}
 	return err
