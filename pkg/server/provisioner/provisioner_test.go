@@ -180,7 +180,7 @@ func TestDriverDeleteBucket(t *testing.T) {
 func TestDriverGrantBucketAccess(t *testing.T) {
 	tests := []struct {
 		testName    string
-		bucketID    string
+		url         string
 		authType    spec.AuthenticationType
 		params      map[string]string
 		expectedErr error
@@ -204,7 +204,7 @@ func TestDriverGrantBucketAccess(t *testing.T) {
 		{
 			testName:    "Key Auth Type",
 			authType:    spec.AuthenticationType_Key,
-			bucketID:    constant.ValidAccountURL,
+			url:         constant.ValidAccountURL,
 			params:      map[string]string{},
 			expectedErr: nil,
 		},
@@ -214,8 +214,16 @@ func TestDriverGrantBucketAccess(t *testing.T) {
 	pr := newFakeProvisioner(ctrl)
 
 	for _, test := range tests {
+		bucketID := types.BucketID{
+			URL: test.url,
+		}
+		id, err := bucketID.Encode()
+		if err != nil {
+			t.Errorf("encoding error: %s", err.Error())
+		}
+
 		resp, err := pr.DriverGrantBucketAccess(context.Background(), &spec.DriverGrantBucketAccessRequest{
-			BucketId:           test.bucketID,
+			BucketId:           id,
 			AuthenticationType: test.authType,
 			Parameters:         test.params,
 		})

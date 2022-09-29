@@ -133,13 +133,20 @@ func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[str
 		return "", "", err
 	}
 
+	klog.Info()
+	id, err := types.DecodeToBucketID(bucketID)
+	if err != nil {
+		return "", "", err
+	}
+	url := id.URL
+
 	switch bucketAccessClassParams.bucketUnitType {
 	case constant.Container:
 		klog.Info("Creating a Container SAS")
-		return createContainerSASURL(ctx, bucketID, bucketAccessClassParams)
+		return createContainerSASURL(ctx, url, bucketAccessClassParams)
 	case constant.StorageAccount:
 		klog.Info("Creating an Account SAS")
-		return createAccountSASURL(ctx, bucketID, bucketAccessClassParams)
+		return createAccountSASURL(ctx, url, bucketAccessClassParams)
 	}
 	return "", "", status.Error(codes.InvalidArgument, "invalid bucket type")
 }
