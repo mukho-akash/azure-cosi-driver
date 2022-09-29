@@ -23,6 +23,7 @@ const (
 	TagKeyValueDelimiter = "="
 
 	TrueValue                  = "true"
+	FalseValue                 = "false"
 	StorageAccountTypeField    = "storageaccounttype"
 	LocationField              = "location"
 	KindField                  = "kind"
@@ -38,7 +39,7 @@ const (
 // ConvertTagsToMap convert the tags from string to map
 // the valid tags fomat is "key1=value1,key2=value2", which could be converted to
 // {"key1": "value1", "key2": "value2"}
-func convertTagsToMap(tags string) (map[string]string, error) {
+func ConvertTagsToMap(tags string) (map[string]string, error) {
 	m := make(map[string]string)
 	if tags == "" {
 		return m, nil
@@ -60,7 +61,7 @@ func convertTagsToMap(tags string) (map[string]string, error) {
 	return m, nil
 }
 
-func convertMapToMapPointer(origin map[string]string) map[string]*string {
+func ConvertMapToMapPointer(origin map[string]string) map[string]*string {
 	newly := make(map[string]*string)
 	for k, v := range origin {
 		value := v

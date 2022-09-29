@@ -35,6 +35,10 @@ spec:
       volumes:
       - name: socket
         emptyDir: {}
+      - name: azure-cred
+        hostPath:
+          path: /etc/kubernetes/
+          type: DirectoryOrCreate
       containers:
       - name: azure-cosi-driver
         image: $(AZURE_IMAGE_ORG)/azure-cosi-driver:$(AZURE_IMAGE_VERSION)
@@ -42,6 +46,8 @@ spec:
         volumeMounts:
         - mountPath: /var/lib/cosi
           name: socket
+        - mountPath: /etc/kubernetes/
+          name: azure-cred
       - name: objectstorage-provisioner-sidecar
         image: $(IMAGE_ORG)/objectstorage-sidecar:$(IMAGE_VERSION)
         imagePullPolicy: Always

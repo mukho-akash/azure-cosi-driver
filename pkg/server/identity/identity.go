@@ -35,14 +35,14 @@ func NewIdentityServer(driverName string) (spec.IdentityServer, error) {
 	}, nil
 }
 
-func (id identity) ProvisionerGetInfo(
+func (id identity) DriverGetInfo(
 	ctx context.Context,
-	req *spec.ProvisionerGetInfoRequest) (*spec.ProvisionerGetInfoResponse, error) {
+	req *spec.DriverGetInfoRequest) (*spec.DriverGetInfoResponse, error) {
 	if id.driverName == "" {
-		return nil, status.Error(codes.InvalidArgument, "Provisioner name not found")
+		return nil, status.Error(codes.InvalidArgument, "Driver name not found")
 	}
 
-	return &spec.ProvisionerGetInfoResponse{
+	return &spec.DriverGetInfoResponse{
 		Name: id.driverName,
 	}, nil
 }

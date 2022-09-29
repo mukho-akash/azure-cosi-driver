@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-02-01/storage"
+	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-09-01/storage"
 
 	"k8s.io/klog/v2"
 
@@ -42,6 +42,12 @@ type ShareOptions struct {
 	Name       string
 	Protocol   storage.EnabledProtocols
 	RequestGiB int
+	// supported values: ""(by default), "TransactionOptimized", "Cool", "Hot", "Premium"
+	AccessTier string
+	// supported values: ""(by default), "AllSquash", "NoRootSquash", "RootSquash"
+	RootSquash string
+	// Metadata - A name-value pair to associate with the share as metadata.
+	Metadata map[string]*string
 }
 
 // New creates a azure file client
@@ -72,6 +78,15 @@ func (c *Client) CreateFileShare(resourceGroupName, accountName string, shareOpt
 	if shareOptions.Protocol == storage.EnabledProtocolsNFS {
 		fileShareProperties.EnabledProtocols = shareOptions.Protocol
 	}
+	if shareOptions.AccessTier != "" {
+		fileShareProperties.AccessTier = storage.ShareAccessTier(shareOptions.AccessTier)
+	}
+	if shareOptions.RootSquash != "" {
+		fileShareProperties.RootSquash = storage.RootSquashType(shareOptions.RootSquash)
+	}
+	if shareOptions.Metadata != nil {
+		fileShareProperties.Metadata = shareOptions.Metadata
+	}
 	fileShare := storage.FileShare{
 		Name:                &shareOptions.Name,
 		FileShareProperties: fileShareProperties,
@@ -92,7 +107,7 @@ func (c *Client) CreateFileShare(resourceGroupName, accountName string, shareOpt
 func (c *Client) DeleteFileShare(resourceGroupName, accountName, name string) error {
 	mc := metrics.NewMetricContext("file_shares", "delete", resourceGroupName, c.subscriptionID, "")
 
-	_, err := c.fileSharesClient.Delete(context.Background(), resourceGroupName, accountName, name, "")
+	_, err := c.fileSharesClient.Delete(context.Background(), resourceGroupName, accountName, name, "", "")
 	var rerr *retry.Error
 	if err != nil {
 		rerr = &retry.Error{
@@ -111,7 +126,7 @@ func (c *Client) ResizeFileShare(resourceGroupName, accountName, name string, si
 
 	quota := int32(sizeGiB)
 
-	share, err := c.fileSharesClient.Get(context.Background(), resourceGroupName, accountName, name, storage.GetShareExpandStats, "")
+	share, err := c.fileSharesClient.Get(context.Background(), resourceGroupName, accountName, name, "stats", "")
 	if err != nil {
 		rerr = &retry.Error{
 			RawError: err,
@@ -145,7 +160,7 @@ func (c *Client) ResizeFileShare(resourceGroupName, accountName, name string, si
 func (c *Client) GetFileShare(resourceGroupName, accountName, name string) (storage.FileShare, error) {
 	mc := metrics.NewMetricContext("file_shares", "get", resourceGroupName, c.subscriptionID, "")
 
-	result, err := c.fileSharesClient.Get(context.Background(), resourceGroupName, accountName, name, storage.GetShareExpandStats, "")
+	result, err := c.fileSharesClient.Get(context.Background(), resourceGroupName, accountName, name, "stats", "")
 	var rerr *retry.Error
 	if err != nil {
 		rerr = &retry.Error{

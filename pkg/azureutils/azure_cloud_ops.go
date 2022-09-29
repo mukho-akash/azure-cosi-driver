@@ -107,7 +107,7 @@ func GetAzureCloudProvider(
 
 		f, err := os.Open(credFile)
 		if err != nil {
-			klog.Errorf("Failed to load config from file: %s", credFile)
+			klog.Errorf("Failed to load config from file: %s, Error: %+v", credFile, err)
 			return nil, fmt.Errorf("Failed to load config from file: %s, cloud not get azure cloud provider", credFile)
 		}
 		defer f.Close()
