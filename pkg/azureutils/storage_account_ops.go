@@ -46,7 +46,6 @@ func createStorageAccountBucket(ctx context.Context,
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
 
-
 	accUrl := fmt.Sprintf("https://%s.blob.core.windows.net/", accName)
 
 	id := types.BucketID{
