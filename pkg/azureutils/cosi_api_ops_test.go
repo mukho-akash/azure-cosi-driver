@@ -162,6 +162,12 @@ func TestParseBucketClassParameters(t *testing.T) {
 			expectedParams: BucketClassParameters{bucketUnitType: constant.Container},
 		},
 		{
+			testName:       "Valid SubscriptionID",
+			parameters:     map[string]string{constant.SubscriptionIDField: constant.ValidSub},
+			expectedErr:    nil,
+			expectedParams: BucketClassParameters{subscriptionID: constant.ValidSub},
+		},
+		{
 			testName:       "Valid Storage Account",
 			parameters:     map[string]string{constant.StorageAccountNameField: constant.ValidAccount},
 			expectedErr:    nil,
