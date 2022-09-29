@@ -93,12 +93,12 @@ func DeleteContainerBucket(
 }
 
 func getStorageAccountNameFromContainerURL(containerURL string) string {
-	storageAccountName, _, _ := parsecontainerurl(containerURL)
+	storageAccountName, _, _, _ := parsecontainerurl(containerURL)
 	return storageAccountName
 }
 
 func getContainerNameFromContainerURL(containerURL string) string {
-	_, containerName, _ := parsecontainerurl(containerURL)
+	_, containerName, _, _ := parsecontainerurl(containerURL)
 	return containerName
 }
 
@@ -134,13 +134,26 @@ func createContainerClient(
 	return containerClient, err
 }
 
-func parsecontainerurl(containerURL string) (string, string, string) {
+func parsecontainerurl(containerURL string) (string, string, string, error) {
 	matches := storageAccountRE.FindStringSubmatch(containerURL)
+	if len(matches) < 2 {
+		errStr := fmt.Sprintf("Invalid URL has been passed: %s", containerURL)
+		klog.Errorf("Error in parsecontainerurl :: %s", errStr)
+		return "", "", "", errors.New(errStr)
+	}
+
 	storageAccount := matches[1]
-	containerName := matches[2]
-	blobName := matches[3]
-	klog.Infof("parsecontainerurl:: %s :: %s :: %s", storageAccount, containerName, blobName)
-	return storageAccount, containerName, blobName
+	containerName := ""
+	if len(matches) > 2 {
+		containerName = matches[2]
+	}
+
+	blobName := ""
+	if len(matches) > 3 {
+		blobName = matches[3]
+	}
+
+	return storageAccount, containerName, blobName, nil
 }
 
 func createAzureContainer(

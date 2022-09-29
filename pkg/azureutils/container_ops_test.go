@@ -115,7 +115,10 @@ func TestParseContainerURL(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		acc, con, blob := parsecontainerurl(test.url)
+		acc, con, blob, err := parsecontainerurl(test.url)
+		if err != nil {
+			t.Errorf("Error: %v parsing URL: %s", err, test.url)
+		}
 		if !reflect.DeepEqual(acc, test.expectedAccountName) {
 			t.Errorf("\nTestCase: %s\nExpected Account: %v\nActual Account: %v", test.testName, test.expectedAccountName, acc)
 		}

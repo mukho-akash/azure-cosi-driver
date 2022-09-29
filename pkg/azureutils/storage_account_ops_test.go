@@ -92,7 +92,7 @@ func TestDeleteStorageAccount(t *testing.T) {
 			id: &types.BucketID{
 				SubID:         constant.ValidSub,
 				ResourceGroup: constant.ValidResourceGroup,
-				URL:           constant.ValidAccount,
+				URL:           constant.ValidAccountURL,
 			},
 			expectedErr: nil,
 		},
@@ -124,11 +124,13 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
 		account     string
+		accountURL  string
 		expectedErr error
 	}{
 		{
 			testName:    "Valid Account",
 			account:     constant.ValidAccount,
+			accountURL:  constant.ValidAccountURL,
 			expectedErr: nil,
 		},
 		{
@@ -155,7 +157,7 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 		if id != nil {
 			accName = id.URL
 		}
-		if err == nil && !reflect.DeepEqual(accName, test.account) {
+		if err == nil && !reflect.DeepEqual(accName, test.accountURL) {
 			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.account, accName)
 		}
 	}

@@ -39,7 +39,7 @@ func TestCreateBucket(t *testing.T) {
 			params: map[string]string{
 				constant.BucketUnitTypeField:     constant.StorageAccount.String(),
 				constant.StorageAccountNameField: constant.ValidAccount},
-			expectedURL: constant.ValidAccount,
+			expectedURL: constant.ValidAccountURL,
 			expectedErr: nil,
 		},
 		{
