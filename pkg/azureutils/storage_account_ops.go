@@ -30,7 +30,7 @@ func DeleteStorageAccount(
 	id *types.BucketID,
 	cloud *azure.Cloud) error {
 	SAClient := cloud.StorageAccountClient
-	err := SAClient.Delete(ctx, id.SubID, id.ResourceGroup, id.URL)
+	err := SAClient.Delete(ctx, id.SubID, id.ResourceGroup, getStorageAccountNameFromContainerURL(id.URL))
 	if err != nil {
 		return err.Error()
 	}
@@ -46,9 +46,12 @@ func createStorageAccountBucket(ctx context.Context,
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
 
+
+	accUrl := fmt.Sprintf("https://%s.blob.core.windows.net/", accName)
+
 	id := types.BucketID{
 		ResourceGroup: parameters.resourceGroup,
-		URL:           accName,
+		URL:           accUrl,
 	}
 	if parameters.subscriptionID != "" {
 		id.SubID = parameters.subscriptionID

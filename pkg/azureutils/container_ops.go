@@ -24,6 +24,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
@@ -138,6 +139,7 @@ func parsecontainerurl(containerURL string) (string, string, string) {
 	storageAccount := matches[1]
 	containerName := matches[2]
 	blobName := matches[3]
+	klog.Infof("parsecontainerurl:: %s :: %s :: %s", storageAccount, containerName, blobName)
 	return storageAccount, containerName, blobName
 }
 
