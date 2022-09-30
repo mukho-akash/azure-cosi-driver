@@ -93,12 +93,20 @@ func DeleteContainerBucket(
 }
 
 func getStorageAccountNameFromContainerURL(containerURL string) string {
-	storageAccountName, _, _, _ := parsecontainerurl(containerURL)
+	storageAccountName, _, _, err := parsecontainerurl(containerURL)
+	if err != nil {
+		return ""
+	}
+
 	return storageAccountName
 }
 
 func getContainerNameFromContainerURL(containerURL string) string {
-	_, containerName, _, _ := parsecontainerurl(containerURL)
+	_, containerName, _, err := parsecontainerurl(containerURL)
+	if err != nil {
+		return ""
+	}
+
 	return containerName
 }
 
