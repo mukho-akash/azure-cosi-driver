@@ -15,63 +15,74 @@ package azureutils
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net/url"
+	"project/azure-cosi-driver/pkg/types"
 	"regexp"
+	"time"
 
-	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
 const (
-	AccessKey = "t022Cjyk6NsuJsq0s+rBoTs3YQM/FjM2akIs/WIUah9dwz7AD+NiKr/QqQe9nzs8/aXeceH/NtbsK6wyAunr6A=="
+	AccessKey = ""
 )
 
 var (
 	storageAccountRE = regexp.MustCompile(`https://(.+).blob.core.windows.net/([^/]*)/?(.*)`)
 )
 
-func CreateBucket(
+func createContainerBucket(
 	ctx context.Context,
-	storageAccount string,
-	containerName string,
-	parameters map[string]string,
+	bucketName string,
+	parameters *BucketClassParameters,
 	cloud *azure.Cloud) (string, error) {
-
-	options, err := parseParametersForStorageAccount(parameters, cloud)
+	accOptions := getAccountOptions(parameters)
+	_, key, err := cloud.EnsureStorageAccount(ctx, accOptions, "")
 	if err != nil {
-		return "", status.Error(codes.Unknown, fmt.Sprintf("Error parsing parameters : %v", err))
+		return "", status.Error(codes.Internal, fmt.Sprintf("Could not ensure storage account %s exists: %v", accOptions.Name, err))
+	}
+	containerParams := make(map[string]string) //NOTE: Container parameters still need to be filled/implemented
+
+	container, err := createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
+	if err != nil {
+		return "", err
 	}
 
-	options.Name = storageAccount
-	options.ResourceGroup = cloud.ResourceGroup
-	options.CreateAccount = true
-
-	// Check and create StorageAccount here
-	accountName, accessKey, err := cloud.EnsureStorageAccount(options, "")
+	id := types.BucketID{
+		ResourceGroup: parameters.resourceGroup,
+		URL:           container,
+	}
+	if parameters.subscriptionID != "" {
+		id.SubID = parameters.subscriptionID
+	} else {
+		id.SubID = cloud.SubscriptionID
+	}
+	base64ID, err := id.Encode()
 	if err != nil {
-		return "", status.Error(codes.Unknown, fmt.Sprintf("Error creating storage account with name %s : %v", storageAccount, err))
+		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
 	}
 
-	// Once storage account is created, we create the azure container inside the storage account
-	return createAzureContainer(ctx, accountName, accessKey, containerName, parameters)
+	return base64ID, nil
 }
 
-func DeleteBucket(
+func DeleteContainerBucket(
 	ctx context.Context,
-	bucketId string,
+	bucketID *types.BucketID,
 	cloud *azure.Cloud) error {
-	// Get storage account name from bucketId
-	storageAccountName := getStorageAccountNameFromContainerUrl(bucketId)
+	// Get storage account name from bucket url
+	storageAccountName := getStorageAccountNameFromContainerURL(bucketID.URL)
 	// Get access keys for the storage account
-	accessKey, err := cloud.GetStorageAccesskey(storageAccountName, cloud.ResourceGroup)
+	accessKey, err := cloud.GetStorageAccesskey(ctx, bucketID.SubID, storageAccountName, bucketID.ResourceGroup)
 	if err != nil {
 		return err
 	}
 
-	containerName := getContainerNameFromContainerUrl(bucketId)
+	containerName := getContainerNameFromContainerURL(bucketID.URL)
 	err = deleteAzureContainer(ctx, storageAccountName, accessKey, containerName)
 	if err != nil {
 		return fmt.Errorf("Error deleting container %s in storage account %s : %v", containerName, storageAccountName, err)
@@ -81,13 +92,21 @@ func DeleteBucket(
 	return nil
 }
 
-func getStorageAccountNameFromContainerUrl(containerUrl string) string {
-	storageAccountName, _, _ := parseContainerUrl(containerUrl)
+func getStorageAccountNameFromContainerURL(containerURL string) string {
+	storageAccountName, _, _, err := parsecontainerurl(containerURL)
+	if err != nil {
+		return ""
+	}
+
 	return storageAccountName
 }
 
-func getContainerNameFromContainerUrl(containerUrl string) string {
-	_, containerName, _ := parseContainerUrl(containerUrl)
+func getContainerNameFromContainerURL(containerURL string) string {
+	_, containerName, _, err := parsecontainerurl(containerURL)
+	if err != nil {
+		return ""
+	}
+
 	return containerName
 }
 
@@ -96,49 +115,53 @@ func deleteAzureContainer(
 	storageAccount,
 	accessKey,
 	containerName string) error {
-	containerUrl, err := createContainerUrl(storageAccount, accessKey, containerName)
+	containerClient, err := createContainerClient(storageAccount, accessKey, containerName)
 
 	if err != nil {
 		return err
 	}
 
-	_, err = containerUrl.Delete(ctx, azblob.ContainerAccessConditions{})
+	_, err = containerClient.Delete(ctx, nil)
 	return err
 }
 
-func createContainerUrl(
+func createContainerClient(
 	storageAccount string,
 	accessKey string,
-	containerName string) (azblob.ContainerURL, error) {
+	containerName string) (*azblob.ContainerClient, error) {
 	// Create credentials
 	credential, err := azblob.NewSharedKeyCredential(storageAccount, accessKey)
 	if err != nil {
-		return azblob.ContainerURL{}, fmt.Errorf("Invalid credentials with error : %v", err)
+		return nil, fmt.Errorf("Invalid credentials with error : %v", err)
 	}
 
-	// Create a default request pipeline using credential
-	pipeline := azblob.NewPipeline(credential, azblob.PipelineOptions{})
+	containerURL := fmt.Sprintf("https://%s.blob.core.windows.net/%s", storageAccount, containerName)
 
-	urlString, err := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net", storageAccount))
-	if err != nil {
-		return azblob.ContainerURL{}, err
-	}
+	containerClient, err := azblob.NewContainerClientWithSharedKey(containerURL, credential, nil)
 
-	serviceURL := azblob.NewServiceURL(*urlString, pipeline)
-
-	// Create containerURL that wraps the service url and pipeline to make requests
-	containerURL := serviceURL.NewContainerURL(containerName)
-
-	return containerURL, nil
-
+	return containerClient, err
 }
 
-func parseContainerUrl(containerUrl string) (string, string, string) {
-	matches := storageAccountRE.FindStringSubmatch(containerUrl)
+func parsecontainerurl(containerURL string) (string, string, string, error) {
+	matches := storageAccountRE.FindStringSubmatch(containerURL)
+	if len(matches) < 2 {
+		errStr := fmt.Sprintf("Invalid URL has been passed: %s", containerURL)
+		klog.Errorf("Error in parsecontainerurl :: %s", errStr)
+		return "", "", "", errors.New(errStr)
+	}
+
 	storageAccount := matches[1]
-	containerName := matches[2]
-	blobName := matches[3]
-	return storageAccount, containerName, blobName
+	containerName := ""
+	if len(matches) > 2 {
+		containerName = matches[2]
+	}
+
+	blobName := ""
+	if len(matches) > 3 {
+		blobName = matches[3]
+	}
+
+	return storageAccount, containerName, blobName, nil
 }
 
 func createAzureContainer(
@@ -151,21 +174,62 @@ func createAzureContainer(
 		return "", fmt.Errorf("Invalid storage account or access key")
 	}
 
-	containerURL, err := createContainerUrl(storageAccount, accessKey, containerName)
+	containerClient, err := createContainerClient(storageAccount, accessKey, containerName)
 	if err != nil {
 		return "", err
 	}
 
-	// Lets create a container with the containerURL
-	_, err = containerURL.Create(ctx, parameters, azblob.PublicAccessNone)
+	// Lets create a container with the containerClient
+	_, err = containerClient.Create(ctx, &azblob.ContainerCreateOptions{
+		Metadata: parameters,
+		Access:   nil,
+	})
 	if err != nil {
-		if serr, ok := err.(azblob.StorageError); ok {
-			if serr.ServiceCode() == azblob.ServiceCodeBlobAlreadyExists {
-				return containerURL.String(), nil
+		var serr *azblob.StorageError
+		if errors.As(err, &serr) {
+			if serr.ErrorCode == azblob.StorageErrorCodeContainerAlreadyExists {
+				return containerClient.URL(), nil
 			}
 		}
-		return "", fmt.Errorf("Error creating container from containterURL : %s, Error : %v", containerURL.String(), err)
+		return "", fmt.Errorf("Error creating container from containterURL : %s, Error : %v", containerClient.URL(), err)
 	}
 
-	return containerURL.String(), nil
+	return containerClient.URL(), nil
+}
+
+func createContainerSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {
+	account := getStorageAccountNameFromContainerURL(bucketID)
+	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)
+	if err != nil {
+		return "", "", err
+	}
+
+	permission := azblob.ContainerSASPermissions{}
+	permission.List = parameters.enableList
+	permission.Read = parameters.enableRead
+	permission.Write = parameters.enableWrite
+	permission.Delete = parameters.enableDelete
+	permission.DeletePreviousVersion = parameters.enablePermanentDelete
+	permission.Add = parameters.enableAdd
+	permission.Tag = parameters.enableTags
+
+	start := time.Now()
+	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
+
+	sasQueryParams, err := azblob.BlobSASSignatureValues{
+		Protocol:    azblob.SASProtocol(parameters.signedProtocol),
+		StartTime:   start,
+		ExpiryTime:  expiry,
+		Permissions: permission.String(),
+		IPRange:     azblob.IPRange(parameters.signedIP),
+		Version:     parameters.signedversion,
+	}.NewSASQueryParameters(cred)
+	if err != nil {
+		return "", "", err
+	}
+
+	queryParams := sasQueryParams.Encode()
+	sasURL := fmt.Sprintf("%s/%s", bucketID, queryParams)
+	accountID := fmt.Sprintf("https://%s.blob.core.windows.net/", getStorageAccountNameFromContainerURL(bucketID))
+	return sasURL, accountID, nil
 }
