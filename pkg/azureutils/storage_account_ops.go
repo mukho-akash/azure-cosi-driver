@@ -46,11 +46,11 @@ func createStorageAccountBucket(ctx context.Context,
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
 
-	accUrl := fmt.Sprintf("https://%s.blob.core.windows.net/", accName)
+	accURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accName)
 
 	id := types.BucketID{
 		ResourceGroup: parameters.resourceGroup,
-		URL:           accUrl,
+		URL:           accURL,
 	}
 	if parameters.subscriptionID != "" {
 		id.SubID = parameters.subscriptionID
