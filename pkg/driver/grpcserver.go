@@ -100,7 +100,7 @@ func (s *COSIServer) startServer() error {
 }
 
 func (s *COSIServer) GracefulStop() {
-	klog.Info("Reuqesting graceful GRPC server stop")
+	klog.Info("Requesting graceful GRPC server stop")
 	s.server.GracefulStop()
 }
 
