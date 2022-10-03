@@ -21,9 +21,10 @@ if [ -z $RESOURCE_GROUP ]; then
     exit 1
 fi
 
+echo -e "\nrunning cosi-uninstall.sh"
+DRIVER_NAME=$(dirname "$(realpath ${BASH_SOURCE[0]})")
+source "$DRIVER_NAME/cosi-uninstall.sh"
+
 echo -e "\nRunning cluster-down.sh"
 DRIVER_NAME=$(dirname "$(realpath ${BASH_SOURCE[0]})")
-source "$DRIVER_NAME/cluster-down.sh -n $CLUSTER_NAME -r $RESOURCE_GROUP"
-
-echo -e "\nrunning cosi-uninstall.sh"
-source "$DRIVER_NAME/cosi-uninstall.sh"
+source "$DRIVER_NAME/cluster-down.sh" -n $CLUSTER_NAME -r $RESOURCE_GROUP
