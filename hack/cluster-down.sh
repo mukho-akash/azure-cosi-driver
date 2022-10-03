@@ -21,7 +21,7 @@ if [ -z $RESOURCE_GROUP ]; then
     exit 1
 fi
 
-service_principal=$(az aks show --name cluster-up-test --resource-group cosi-test --query servicePrincipalProfile.clientId -o tsv)
+service_principal=$(az aks show --name $CLUSTER_NAME --resource-group $RESOURCE_GROUP --query servicePrincipalProfile.clientId -o tsv)
 echo -e "\nDeleting Service Principal $service_principal"
 az ad sp delete --id $service_principal
 
