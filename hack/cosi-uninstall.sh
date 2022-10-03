@@ -1,6 +1,6 @@
-echo "Deleting CRD's for COSI and COSI Controller"
-kubectl delete -k github.com/kubernetes-sigs/container-object-storage-interface-api
-kubectl delete -k github.com/kubernetes-sigs/container-object-storage-interface-controller
+echo -e "\nDeleting Kube Resources"
+kubectl delete -k ./. 
+echo -e "\n"
 
 echo -e "\nDeleting COSI Driver and Sidecar"
 DRIVER_NAME=$(dirname $(dirname "$(realpath ${BASH_SOURCE[0]})"))
@@ -15,6 +15,6 @@ echo "Registry: $REGISTRY"
 echo "Version: $IMAGE_VERSION"
 docker image rm "$REGISTRY/azure-cosi-driver:$IMAGE_VERSION"
 
-echo -e "\nDeleting Kube Resources"
-kubectl delete -k ./. 
-echo -e "\n"
+echo "Deleting CRD's for COSI and COSI Controller"
+kubectl delete -k github.com/kubernetes-sigs/container-object-storage-interface-controller
+kubectl delete -k github.com/kubernetes-sigs/container-object-storage-interface-api
