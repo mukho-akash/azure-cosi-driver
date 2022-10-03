@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -20,7 +21,8 @@ import (
 type BucketClassParameters struct {
 	bucketUnitType                 constant.BucketUnitType
 	createBucket                   bool
-	createStorageAccount           bool
+	createStorageAccount           *bool
+	subscriptionID                 string
 	storageAccountName             string
 	region                         string
 	accessTier                     constant.AccessTier
@@ -85,8 +87,10 @@ func CreateBucket(ctx context.Context,
 
 	switch bucketClassParams.bucketUnitType {
 	case constant.Container:
+		klog.Info("Creating a container")
 		return createContainerBucket(ctx, bucketName, bucketClassParams, cloud)
 	case constant.StorageAccount:
+		klog.Info("Creating a storage account")
 		return createStorageAccountBucket(ctx, bucketName, bucketClassParams, cloud)
 	}
 	return "", status.Error(codes.InvalidArgument, "Invalid BucketUnitType")
@@ -95,8 +99,21 @@ func CreateBucket(ctx context.Context,
 func DeleteBucket(ctx context.Context,
 	bucketID string,
 	cloud *azure.Cloud) error {
+	//decode bucketID
+	klog.Info("Decoding bucketID from base64 string to BucketID struct")
+	id, err := types.DecodeToBucketID(bucketID)
+	if err != nil {
+		return err
+	}
+
 	//determine if the bucket is an account or a blob container
-	account, container, blob := parsecontainerurl(bucketID)
+	klog.Info("Parsing Bucket URL")
+	account, container, blob, err := parsecontainerurl(id.URL)
+	if err != nil {
+		klog.Errorf("Error: %v parsing url: %s", err, id.URL)
+		return err
+	}
+	klog.Infof("Values from URL. Account: %s, Container: %s, Blob: %s", account, container, blob)
 	if account == "" {
 		return status.Error(codes.InvalidArgument, "Storage Account required")
 	}
@@ -104,12 +121,12 @@ func DeleteBucket(ctx context.Context,
 		return status.Error(codes.InvalidArgument, "Individual Blobs unsupported. Please use Blob Containers or Storage Accounts instead.")
 	}
 
-	klog.Infof("DriverDeleteBucket :: Bucket id :: %s", bucketID)
-	var err error
 	if container == "" { //container not present, deleting storage account
-		err = DeleteStorageAccount(ctx, account, cloud)
+		klog.Info("Deleting bucket of type storage account")
+		err = DeleteStorageAccount(ctx, id, cloud)
 	} else { //container name present, deleting container
-		err = DeleteContainerBucket(ctx, bucketID, cloud)
+		klog.Info("Deleting bucket of type container")
+		err = DeleteContainerBucket(ctx, id, cloud)
 	}
 	return err
 }
@@ -121,11 +138,20 @@ func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[str
 		return "", "", err
 	}
 
+	klog.Info()
+	id, err := types.DecodeToBucketID(bucketID)
+	if err != nil {
+		return "", "", err
+	}
+	url := id.URL
+
 	switch bucketAccessClassParams.bucketUnitType {
 	case constant.Container:
-		return createContainerSASURL(ctx, bucketID, bucketAccessClassParams)
+		klog.Info("Creating a Container SAS")
+		return createContainerSASURL(ctx, url, bucketAccessClassParams)
 	case constant.StorageAccount:
-		return createAccountSASURL(ctx, bucketID, bucketAccessClassParams)
+		klog.Info("Creating an Account SAS")
+		return createAccountSASURL(ctx, url, bucketAccessClassParams)
 	}
 	return "", "", status.Error(codes.InvalidArgument, "invalid bucket type")
 }
@@ -152,10 +178,12 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 		case constant.CreateStorageAccountField:
 			if strings.EqualFold(v, TrueValue) {
-				BCParams.createStorageAccount = true
-			} else {
-				BCParams.createStorageAccount = false
+				BCParams.createStorageAccount = to.BoolPtr(true)
+			} else if strings.EqualFold(v, FalseValue) {
+				BCParams.createStorageAccount = to.BoolPtr(false)
 			}
+		case constant.SubscriptionIDField:
+			BCParams.subscriptionID = v
 		case constant.StorageAccountNameField:
 			BCParams.storageAccountName = v
 		case constant.RegionField:
@@ -275,6 +303,13 @@ func parseBucketClassParameters(parameters map[string]string) (*BucketClassParam
 			}
 		}
 	}
+
+	// If the unit type of bucket is StorageAccount and the create storage account is not set,
+	// We will create a storage account if not present.
+	if BCParams.bucketUnitType == constant.StorageAccount && BCParams.createStorageAccount == nil {
+		BCParams.createStorageAccount = to.BoolPtr(true)
+	}
+
 	return BCParams, nil
 }
 
@@ -415,6 +450,10 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 }
 
 func getAccountOptions(params *BucketClassParameters) *azure.AccountOptions {
+	createStorageAccount := false
+	if params.createStorageAccount != nil {
+		createStorageAccount = to.Bool(params.createStorageAccount)
+	}
 	options := &azure.AccountOptions{
 		Name:                      params.storageAccountName,
 		ResourceGroup:             params.resourceGroup,
@@ -428,6 +467,7 @@ func getAccountOptions(params *BucketClassParameters) *azure.AccountOptions {
 		IsHnsEnabled:              to.BoolPtr(params.isHnsEnabled),
 		EnableNfsV3:               to.BoolPtr(params.enableNfsV3),
 		EnableLargeFileShare:      params.enableLargeFileShare,
+		CreateAccount:             createStorageAccount,
 	}
 	return options
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 	"reflect"
 	"testing"
 
@@ -52,19 +53,27 @@ func TestCreateContainerBucket(t *testing.T) {
 func TestDeleteContainerBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
-		url         string
+		id          *types.BucketID
 		clientNil   bool
 		expectedErr error
 	}{
 		{
-			testName:    "Storage Account Client is nil",
-			url:         constant.ValidContainerURL,
+			testName: "Storage Account Client is nil",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidContainerURL,
+			},
 			clientNil:   true,
 			expectedErr: fmt.Errorf("StorageAccountClient is nil"),
 		},
 		{
-			testName:    "Invalid Credentials/Key",
-			url:         constant.ValidContainerURL,
+			testName: "Invalid Credentials/Key",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidContainerURL,
+			},
 			clientNil:   false,
 			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
 		},
@@ -82,7 +91,7 @@ func TestDeleteContainerBucket(t *testing.T) {
 			cloud.StorageAccountClient = nil
 		}
 
-		err := DeleteContainerBucket(context.Background(), test.url, cloud)
+		err := DeleteContainerBucket(context.Background(), test.id, cloud)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected Error: %v\nActual Error: %v", test.testName, test.expectedErr, err)
 		}
@@ -106,7 +115,10 @@ func TestParseContainerURL(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		acc, con, blob := parsecontainerurl(test.url)
+		acc, con, blob, err := parsecontainerurl(test.url)
+		if err != nil {
+			t.Errorf("Error: %v parsing URL: %s", err, test.url)
+		}
 		if !reflect.DeepEqual(acc, test.expectedAccountName) {
 			t.Errorf("\nTestCase: %s\nExpected Account: %v\nActual Account: %v", test.testName, test.expectedAccountName, acc)
 		}
@@ -271,6 +283,48 @@ func TestCreateAzureContainer(t *testing.T) {
 		}
 		if err == nil && !reflect.DeepEqual(url, test.expectedURL) {
 			t.Errorf("\nTestCase: %s\nExpected URL: %v\nActual URL: %v", test.testName, test.expectedURL, url)
+		}
+	}
+}
+
+func TestCreateContainerSASURL(t *testing.T) {
+	tests := []struct {
+		testName    string
+		bucketID    string
+		params      *BucketAccessClassParameters
+		urlIsEmpty  bool
+		expectedID  string
+		expectedErr error
+	}{
+		{
+			testName: "Key is illegal base64 data",
+			bucketID: constant.ValidContainerURL,
+			params: &BucketAccessClassParameters{
+				key: "badkey",
+			},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: fmt.Errorf("decode account key: %w", base64.CorruptInputError(4)),
+		},
+		{
+			testName: "Correct Inputs",
+			bucketID: constant.ValidContainerURL,
+			params: &BucketAccessClassParameters{
+				enableRead:       true,
+				enableList:       true,
+				validationPeriod: 1,
+			},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		_, accountID, err := createContainerSASURL(context.Background(), test.bucketID, test.params)
+		if !reflect.DeepEqual(err, test.expectedErr) {
+			t.Errorf("\nTestCase: %s\nexpected:\t%v\nactual: \t%v", test.testName, test.expectedErr, err)
+		}
+		if err == nil && !reflect.DeepEqual(accountID, test.expectedID) {
+			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.expectedID, accountID)
 		}
 	}
 }

@@ -70,15 +70,6 @@ func NewProvisionerServer(
 func (pr *provisioner) DriverCreateBucket(
 	ctx context.Context,
 	req *spec.DriverCreateBucketRequest) (*spec.DriverCreateBucketResponse, error) {
-	/* protocol := req.GetProtocol()
-	if protocol == nil {
-		return nil, status.Error(codes.InvalidArgument, "Protocol is nil")
-	}
-
-	azureBlob := protocol.GetAzureBlob()
-	if azureBlob == nil {
-		return nil, status.Error(codes.InvalidArgument, "Azure blob protocol is missing")
-	}*/
 
 	bucketName := req.GetName()
 	parameters := req.GetParameters()
@@ -161,22 +152,23 @@ func (pr *provisioner) DriverGrantBucketAccess(
 		return nil, status.Error(codes.InvalidArgument, "AuthenticationType not provided in GrantBucketAccess request.")
 	}
 
-	var accountID, token string
+	var token string
 	var err error
 
+	klog.Infof("DriverGrantBucketAccess :: Bucket id :: %s", bucketID)
 	if req.AuthenticationType == spec.AuthenticationType_IAM {
 		return nil, status.Error(codes.Unimplemented, "AuthenticationType IAM not implemented.")
 	} else if req.AuthenticationType == spec.AuthenticationType_Key {
-		token, accountID, err = azureutils.CreateBucketSASURL(ctx, bucketID, parameters)
+		token, _, err = azureutils.CreateBucketSASURL(ctx, bucketID, parameters)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &spec.DriverGrantBucketAccessResponse{
-		AccountId: accountID,
+		AccountId: req.GetName(),
 		Credentials: map[string]*spec.CredentialDetails{constant.CredentialType: {
-			Secrets: map[string]string{constant.SASURL: token},
+			Secrets: map[string]string{constant.AccessToken: token},
 		}},
 	}, nil
 }

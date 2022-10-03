@@ -15,13 +15,16 @@ package azureutils
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"project/azure-cosi-driver/pkg/types"
 	"regexp"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/klog"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
@@ -44,22 +47,42 @@ func createContainerBucket(
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not ensure storage account %s exists: %v", accOptions.Name, err))
 	}
 	containerParams := make(map[string]string) //NOTE: Container parameters still need to be filled/implemented
-	return createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
+
+	container, err := createAzureContainer(ctx, parameters.storageAccountName, key, bucketName, containerParams)
+	if err != nil {
+		return "", err
+	}
+
+	id := types.BucketID{
+		ResourceGroup: parameters.resourceGroup,
+		URL:           container,
+	}
+	if parameters.subscriptionID != "" {
+		id.SubID = parameters.subscriptionID
+	} else {
+		id.SubID = cloud.SubscriptionID
+	}
+	base64ID, err := id.Encode()
+	if err != nil {
+		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
+	}
+
+	return base64ID, nil
 }
 
 func DeleteContainerBucket(
 	ctx context.Context,
-	bucketID string,
+	bucketID *types.BucketID,
 	cloud *azure.Cloud) error {
-	// Get storage account name from bucketID
-	storageAccountName := getStorageAccountNameFromContainerURL(bucketID)
+	// Get storage account name from bucket url
+	storageAccountName := getStorageAccountNameFromContainerURL(bucketID.URL)
 	// Get access keys for the storage account
-	accessKey, err := cloud.GetStorageAccesskey(ctx, cloud.SubscriptionID, storageAccountName, cloud.ResourceGroup)
+	accessKey, err := cloud.GetStorageAccesskey(ctx, bucketID.SubID, storageAccountName, bucketID.ResourceGroup)
 	if err != nil {
 		return err
 	}
 
-	containerName := getContainerNameFromContainerURL(bucketID)
+	containerName := getContainerNameFromContainerURL(bucketID.URL)
 	err = deleteAzureContainer(ctx, storageAccountName, accessKey, containerName)
 	if err != nil {
 		return fmt.Errorf("Error deleting container %s in storage account %s : %v", containerName, storageAccountName, err)
@@ -70,12 +93,20 @@ func DeleteContainerBucket(
 }
 
 func getStorageAccountNameFromContainerURL(containerURL string) string {
-	storageAccountName, _, _ := parsecontainerurl(containerURL)
+	storageAccountName, _, _, err := parsecontainerurl(containerURL)
+	if err != nil {
+		return ""
+	}
+
 	return storageAccountName
 }
 
 func getContainerNameFromContainerURL(containerURL string) string {
-	_, containerName, _ := parsecontainerurl(containerURL)
+	_, containerName, _, err := parsecontainerurl(containerURL)
+	if err != nil {
+		return ""
+	}
+
 	return containerName
 }
 
@@ -111,12 +142,26 @@ func createContainerClient(
 	return containerClient, err
 }
 
-func parsecontainerurl(containerURL string) (string, string, string) {
+func parsecontainerurl(containerURL string) (string, string, string, error) {
 	matches := storageAccountRE.FindStringSubmatch(containerURL)
+	if len(matches) < 2 {
+		errStr := fmt.Sprintf("Invalid URL has been passed: %s", containerURL)
+		klog.Errorf("Error in parsecontainerurl :: %s", errStr)
+		return "", "", "", errors.New(errStr)
+	}
+
 	storageAccount := matches[1]
-	containerName := matches[2]
-	blobName := matches[3]
-	return storageAccount, containerName, blobName
+	containerName := ""
+	if len(matches) > 2 {
+		containerName = matches[2]
+	}
+
+	blobName := ""
+	if len(matches) > 3 {
+		blobName = matches[3]
+	}
+
+	return storageAccount, containerName, blobName, nil
 }
 
 func createAzureContainer(
@@ -140,6 +185,12 @@ func createAzureContainer(
 		Access:   nil,
 	})
 	if err != nil {
+		var serr *azblob.StorageError
+		if errors.As(err, &serr) {
+			if serr.ErrorCode == azblob.StorageErrorCodeContainerAlreadyExists {
+				return containerClient.URL(), nil
+			}
+		}
 		return "", fmt.Errorf("Error creating container from containterURL : %s, Error : %v", containerClient.URL(), err)
 	}
 
@@ -149,10 +200,6 @@ func createAzureContainer(
 func createContainerSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {
 	account := getStorageAccountNameFromContainerURL(bucketID)
 	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)
-	if err != nil {
-		return "", "", err
-	}
-
 	if err != nil {
 		return "", "", err
 	}

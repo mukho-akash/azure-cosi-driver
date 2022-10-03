@@ -16,6 +16,7 @@ package azureutils
 import (
 	"context"
 	"fmt"
+	"project/azure-cosi-driver/pkg/types"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -26,10 +27,10 @@ import (
 
 func DeleteStorageAccount(
 	ctx context.Context,
-	account string,
+	id *types.BucketID,
 	cloud *azure.Cloud) error {
 	SAClient := cloud.StorageAccountClient
-	err := SAClient.Delete(ctx, cloud.SubscriptionID, cloud.ResourceGroup, account)
+	err := SAClient.Delete(ctx, id.SubID, id.ResourceGroup, getStorageAccountNameFromContainerURL(id.URL))
 	if err != nil {
 		return err.Error()
 	}
@@ -44,7 +45,24 @@ func createStorageAccountBucket(ctx context.Context,
 	if err != nil {
 		return "", status.Error(codes.Internal, fmt.Sprintf("Could not create storage account: %v", err))
 	}
-	return accName, nil
+
+	accURL := fmt.Sprintf("https://%s.blob.core.windows.net/", accName)
+
+	id := types.BucketID{
+		ResourceGroup: parameters.resourceGroup,
+		URL:           accURL,
+	}
+	if parameters.subscriptionID != "" {
+		id.SubID = parameters.subscriptionID
+	} else {
+		id.SubID = cloud.SubscriptionID
+	}
+	base64ID, err := id.Encode()
+	if err != nil {
+		return "", status.Error(codes.InvalidArgument, fmt.Sprintf("could not encode ID: %v", err))
+	}
+
+	return base64ID, nil
 }
 
 // creates SAS and returns service client with sas
@@ -79,13 +97,14 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
 	sasQueryParams, err := azblob.AccountSASSignatureValues{
-		Protocol:    parameters.signedProtocol,
-		StartTime:   start,
-		ExpiryTime:  expiry,
-		Permissions: permission.String(),
-		Services:    azblob.AccountSASServices{Blob: true}.String(),
-		IPRange:     parameters.signedIP,
-		Version:     parameters.signedversion,
+		Protocol:      parameters.signedProtocol,
+		StartTime:     start,
+		ExpiryTime:    expiry,
+		Permissions:   permission.String(),
+		ResourceTypes: resources.String(),
+		Services:      azblob.AccountSASServices{Blob: true}.String(),
+		IPRange:       parameters.signedIP,
+		Version:       parameters.signedversion,
 	}.Sign(cred)
 	if err != nil {
 		return "", "", err

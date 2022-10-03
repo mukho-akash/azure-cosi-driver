@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 	"reflect"
 	"sync"
 	"testing"
@@ -26,6 +27,11 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 
 	cl.EXPECT().
 		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccount)).
+		Return(nil).
+		AnyTimes()
+
+	cl.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccountURL)).
 		Return(nil).
 		AnyTimes()
 
@@ -118,6 +124,108 @@ func TestDriverCreateBucket(t *testing.T) {
 		resp, err := pr.DriverCreateBucket(context.Background(), &spec.DriverCreateBucketRequest{
 			Name:       test.bucketName,
 			Parameters: test.params,
+		})
+		if !reflect.DeepEqual(err, test.expectedErr) {
+			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
+		}
+		if err == nil && reflect.DeepEqual(nil, resp) {
+			t.Errorf("\nTestCase: %s\nresponse is nil", test.testName)
+		}
+	}
+}
+
+func TestDriverDeleteBucket(t *testing.T) {
+	tests := []struct {
+		testName    string
+		bucketID    *types.BucketID
+		expectedErr error
+	}{
+		{
+			testName: "Delete Storage Account Bucket",
+			bucketID: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidAccountURL,
+			},
+			expectedErr: nil,
+		},
+		{
+			testName: "Delete Container Bucket",
+			bucketID: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidContainerURL,
+			},
+			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	pr := newFakeProvisioner(ctrl)
+
+	for _, test := range tests {
+		data, _ := test.bucketID.Encode()
+		resp, err := pr.DriverDeleteBucket(context.Background(), &spec.DriverDeleteBucketRequest{
+			BucketId: data,
+		})
+		if !reflect.DeepEqual(err, test.expectedErr) {
+			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
+		}
+		if err == nil && reflect.DeepEqual(nil, resp) {
+			t.Errorf("\nTestCase: %s\nresponse is nil", test.testName)
+		}
+	}
+}
+
+func TestDriverGrantBucketAccess(t *testing.T) {
+	tests := []struct {
+		testName    string
+		url         string
+		authType    spec.AuthenticationType
+		params      map[string]string
+		expectedErr error
+	}{
+		{
+			testName:    "No Parameters",
+			expectedErr: status.Error(codes.InvalidArgument, "Parameters missing. Cannot initialize Azure bucket."),
+		},
+		{
+			testName:    "Unknown auth type",
+			authType:    spec.AuthenticationType_UnknownAuthenticationType,
+			params:      map[string]string{},
+			expectedErr: status.Error(codes.InvalidArgument, "AuthenticationType not provided in GrantBucketAccess request."),
+		},
+		{
+			testName:    "IAM Not yet Implemented",
+			authType:    spec.AuthenticationType_IAM,
+			params:      map[string]string{},
+			expectedErr: status.Error(codes.Unimplemented, "AuthenticationType IAM not implemented."),
+		},
+		{
+			testName:    "Key Auth Type",
+			authType:    spec.AuthenticationType_Key,
+			url:         constant.ValidAccountURL,
+			params:      map[string]string{},
+			expectedErr: nil,
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	pr := newFakeProvisioner(ctrl)
+
+	for _, test := range tests {
+		bucketID := types.BucketID{
+			URL: test.url,
+		}
+		id, err := bucketID.Encode()
+		if err != nil {
+			t.Errorf("encoding error: %s", err.Error())
+		}
+
+		resp, err := pr.DriverGrantBucketAccess(context.Background(), &spec.DriverGrantBucketAccessRequest{
+			BucketId:           id,
+			AuthenticationType: test.authType,
+			Parameters:         test.params,
 		})
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)

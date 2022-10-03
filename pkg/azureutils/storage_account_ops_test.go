@@ -15,12 +15,14 @@ package azureutils
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"reflect"
 	"testing"
 
 	"project/azure-cosi-driver/pkg/constant"
+	"project/azure-cosi-driver/pkg/types"
 
 	"github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-09-01/storage"
 	"github.com/Azure/go-autorest/autorest/to"
@@ -37,6 +39,11 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 
 	cl.EXPECT().
 		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccount)).
+		Return(nil).
+		AnyTimes()
+
+	cl.EXPECT().
+		Delete(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Eq(constant.ValidAccountURL)).
 		Return(nil).
 		AnyTimes()
 
@@ -77,17 +84,25 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 func TestDeleteStorageAccount(t *testing.T) {
 	tests := []struct {
 		testName    string
-		account     string
+		id          *types.BucketID
 		expectedErr error
 	}{
 		{
-			testName:    "Valid Account",
-			account:     constant.ValidAccount,
+			testName: "Valid Account",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.ValidAccountURL,
+			},
 			expectedErr: nil,
 		},
 		{
-			testName:    "Invalid Account",
-			account:     constant.InvalidAccount,
+			testName: "Invalid Account",
+			id: &types.BucketID{
+				SubID:         constant.ValidSub,
+				ResourceGroup: constant.ValidResourceGroup,
+				URL:           constant.InvalidAccount,
+			},
 			expectedErr: retry.GetError(&http.Response{}, status.Error(codes.NotFound, "could not find storage account")).Error(),
 		},
 	}
@@ -98,7 +113,7 @@ func TestDeleteStorageAccount(t *testing.T) {
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
-		err := DeleteStorageAccount(context.Background(), test.account, cloud)
+		err := DeleteStorageAccount(context.Background(), test.id, cloud)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nExpected: %v\nActual: %v", test.testName, test.expectedErr, err)
 		}
@@ -109,11 +124,13 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 	tests := []struct {
 		testName    string
 		account     string
+		accountURL  string
 		expectedErr error
 	}{
 		{
 			testName:    "Valid Account",
 			account:     constant.ValidAccount,
+			accountURL:  constant.ValidAccountURL,
 			expectedErr: nil,
 		},
 		{
@@ -130,12 +147,70 @@ func TestCreateStorageAccountBucket(t *testing.T) {
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
-		accName, err := createStorageAccountBucket(context.Background(), test.account, &BucketClassParameters{storageAccountName: test.account}, cloud)
+		base64ID, err := createStorageAccountBucket(context.Background(), test.account, &BucketClassParameters{storageAccountName: test.account}, cloud)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nexpected: %v\nactual: %v", test.testName, test.expectedErr, err)
 		}
-		if err == nil && !reflect.DeepEqual(accName, test.account) {
+
+		id, _ := types.DecodeToBucketID(base64ID)
+		accName := ""
+		if id != nil {
+			accName = id.URL
+		}
+		if err == nil && !reflect.DeepEqual(accName, test.accountURL) {
 			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.account, accName)
+		}
+	}
+}
+
+func TestCreateAccountSASURL(t *testing.T) {
+	tests := []struct {
+		testName    string
+		bucketID    string
+		params      *BucketAccessClassParameters
+		urlIsEmpty  bool
+		expectedID  string
+		expectedErr error
+	}{
+		{
+			testName: "Key is illegal base64 data",
+			bucketID: constant.ValidAccountURL,
+			params: &BucketAccessClassParameters{
+				key: "badkey",
+			},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: fmt.Errorf("decode account key: %w", base64.CorruptInputError(4)),
+		},
+		{
+			testName:    "Missing permissions, expiry, etc.",
+			bucketID:    constant.ValidAccountURL,
+			params:      &BucketAccessClassParameters{},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: fmt.Errorf("account SAS is missing at least one of these: ExpiryTime, Permissions, Service, or ResourceType"),
+		},
+		{
+			testName: "Correct Inputs",
+			bucketID: constant.ValidAccountURL,
+			params: &BucketAccessClassParameters{
+				allowServiceSignedResourceType:   true,
+				allowContainerSignedResourceType: true,
+				allowObjectSignedResourceType:    true,
+				enableRead:                       true,
+				enableList:                       true,
+				validationPeriod:                 1,
+			},
+			expectedID:  constant.ValidAccountURL,
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		_, bucketID, err := createAccountSASURL(context.Background(), test.bucketID, test.params)
+		if !reflect.DeepEqual(err, test.expectedErr) {
+			t.Errorf("\nTestCase: %s\nexpected:\t%v\nactual: \t%v", test.testName, test.expectedErr, err)
+		}
+		if err == nil && !reflect.DeepEqual(bucketID, test.expectedID) {
+			t.Errorf("\nTestCase: %s\nexpected account: %s\nactual account: %s", test.testName, test.expectedID, bucketID)
 		}
 	}
 }

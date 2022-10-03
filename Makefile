@@ -25,4 +25,7 @@ release-tools/build.make:
 	$(shell rm -rf ${TMP})
 	ln -s release-tools/travis.yml travis.yml
 
+unit-test:
+	go test ./pkg/...
+
 include release-tools/build.make
