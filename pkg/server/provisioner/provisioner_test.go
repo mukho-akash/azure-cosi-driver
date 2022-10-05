@@ -2,6 +2,7 @@ package provisionerserver
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"project/azure-cosi-driver/pkg/constant"
@@ -72,7 +73,7 @@ func NewMockSAClient(ctx context.Context, ctrl *gomock.Controller, subsID, rg, a
 func newFakeProvisioner(ctrl *gomock.Controller) spec.ProvisionerServer {
 	cloud := azure.GetTestCloud(ctrl)
 	keyList := make([]storage.AccountKey, 0)
-	keyList = append(keyList, storage.AccountKey{KeyName: to.StringPtr(constant.ValidAccount), Value: to.StringPtr("val")})
+	keyList = append(keyList, storage.AccountKey{KeyName: to.StringPtr(constant.ValidAccount), Value: to.StringPtr(base64.StdEncoding.EncodeToString([]byte{1, 2, 3, 4}))})
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	return &provisioner{
@@ -156,7 +157,7 @@ func TestDriverDeleteBucket(t *testing.T) {
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidContainerURL,
 			},
-			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
+			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Delete \"https://validaccount.blob.core.windows.net/validcontainer?restype=container\": dial tcp: lookup validaccount.blob.core.windows.net: no such host")),
 		},
 	}
 

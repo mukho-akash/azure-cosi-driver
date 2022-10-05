@@ -21,7 +21,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
@@ -128,16 +129,16 @@ func deleteAzureContainer(
 func createContainerClient(
 	storageAccount string,
 	accessKey string,
-	containerName string) (*azblob.ContainerClient, error) {
+	containerName string) (*container.Client, error) {
 	// Create credentials
-	credential, err := azblob.NewSharedKeyCredential(storageAccount, accessKey)
+	credential, err := container.NewSharedKeyCredential(storageAccount, accessKey)
 	if err != nil {
 		return nil, fmt.Errorf("Invalid credentials with error : %v", err)
 	}
 
 	containerURL := fmt.Sprintf("https://%s.blob.core.windows.net/%s", storageAccount, containerName)
 
-	containerClient, err := azblob.NewContainerClientWithSharedKey(containerURL, credential, nil)
+	containerClient, err := container.NewClientWithSharedKeyCredential(containerURL, credential, nil)
 
 	return containerClient, err
 }
@@ -180,16 +181,13 @@ func createAzureContainer(
 	}
 
 	// Lets create a container with the containerClient
-	_, err = containerClient.Create(ctx, &azblob.ContainerCreateOptions{
+	_, err = containerClient.Create(ctx, &container.CreateOptions{
 		Metadata: parameters,
 		Access:   nil,
 	})
 	if err != nil {
-		var serr *azblob.StorageError
-		if errors.As(err, &serr) {
-			if serr.ErrorCode == azblob.StorageErrorCodeContainerAlreadyExists {
-				return containerClient.URL(), nil
-			}
+		if err.Error() == "ResourceExistsError" {
+			return containerClient.URL(), nil
 		}
 		return "", fmt.Errorf("Error creating container from containterURL : %s, Error : %v", containerClient.URL(), err)
 	}
@@ -197,14 +195,14 @@ func createAzureContainer(
 	return containerClient.URL(), nil
 }
 
-func createContainerSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {
+func createContainerSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters, accountKey string) (string, string, error) {
 	account := getStorageAccountNameFromContainerURL(bucketID)
-	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)
+	cred, err := container.NewSharedKeyCredential(account, accountKey)
 	if err != nil {
 		return "", "", err
 	}
 
-	permission := azblob.ContainerSASPermissions{}
+	permission := sas.ContainerPermissions{}
 	permission.List = parameters.enableList
 	permission.Read = parameters.enableRead
 	permission.Write = parameters.enableWrite
@@ -216,20 +214,21 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters *Buc
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
 
-	sasQueryParams, err := azblob.BlobSASSignatureValues{
-		Protocol:    azblob.SASProtocol(parameters.signedProtocol),
+	sasQueryParams, err := sas.BlobSignatureValues{
+		Protocol:    sas.Protocol(parameters.signedProtocol),
 		StartTime:   start,
 		ExpiryTime:  expiry,
 		Permissions: permission.String(),
-		IPRange:     azblob.IPRange(parameters.signedIP),
+		IPRange:     sas.IPRange(parameters.signedIP),
 		Version:     parameters.signedversion,
-	}.NewSASQueryParameters(cred)
+	}.SignWithSharedKey(cred)
+
 	if err != nil {
 		return "", "", err
 	}
 
 	queryParams := sasQueryParams.Encode()
 	sasURL := fmt.Sprintf("%s?%s", bucketID, queryParams)
-	accountID := fmt.Sprintf("https://%s.blob.core.windows.net/", getStorageAccountNameFromContainerURL(bucketID))
+	accountID := fmt.Sprintf("https://%s.blob.core.windows.net/", account)
 	return sasURL, accountID, nil
 }

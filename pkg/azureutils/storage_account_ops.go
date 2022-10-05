@@ -16,12 +16,14 @@ package azureutils
 import (
 	"context"
 	"fmt"
-	"project/azure-cosi-driver/pkg/types"
+	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"project/azure-cosi-driver/pkg/types"
 	azure "sigs.k8s.io/cloud-provider-azure/pkg/provider"
 )
 
@@ -66,14 +68,14 @@ func createStorageAccountBucket(ctx context.Context,
 }
 
 // creates SAS and returns service client with sas
-func createAccountSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters) (string, string, error) {
+func createAccountSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters, accountKey string) (string, string, error) {
 	account := getStorageAccountNameFromContainerURL(bucketID)
-	cred, err := azblob.NewSharedKeyCredential(account, parameters.key)
+	cred, err := azblob.NewSharedKeyCredential(account, accountKey)
 	if err != nil {
 		return "", "", err
 	}
 
-	resources := azblob.AccountSASResourceTypes{}
+	resources := sas.AccountResourceTypes{}
 	if parameters.allowServiceSignedResourceType {
 		resources.Service = true
 	}
@@ -84,7 +86,7 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 		resources.Object = true
 	}
 
-	permission := azblob.AccountSASPermissions{}
+	permission := sas.AccountPermissions{}
 	permission.List = parameters.enableList
 	permission.Read = parameters.enableRead
 	permission.Write = parameters.enableWrite
@@ -96,20 +98,22 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 
 	start := time.Now()
 	expiry := start.Add(time.Millisecond * time.Duration(parameters.validationPeriod))
-	sasQueryParams, err := azblob.AccountSASSignatureValues{
+	services := &sas.AccountServices{Blob: true}
+	sasQueryParams := sas.AccountSignatureValues{
 		Protocol:      parameters.signedProtocol,
 		StartTime:     start,
 		ExpiryTime:    expiry,
 		Permissions:   permission.String(),
 		ResourceTypes: resources.String(),
-		Services:      azblob.AccountSASServices{Blob: true}.String(),
+		Services:      services.String(),
 		IPRange:       parameters.signedIP,
 		Version:       parameters.signedversion,
-	}.Sign(cred)
+	}
+
+	queryParams, err := sasQueryParams.SignWithSharedKey(cred)
 	if err != nil {
 		return "", "", err
 	}
-	queryParams := sasQueryParams.Encode()
-	sasURL := fmt.Sprintf("%s/?%s", bucketID, queryParams)
+	sasURL := fmt.Sprintf("%s/?%s", strings.TrimSuffix(bucketID, "/"), queryParams.Encode())
 	return sasURL, bucketID, nil
 }

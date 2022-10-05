@@ -39,7 +39,7 @@ func TestCreateContainerBucket(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cloud := azure.GetTestCloud(ctrl)
 	keyList := make([]storage.AccountKey, 0)
-	keyList = append(keyList, storage.AccountKey{KeyName: to.StringPtr(constant.ValidAccount), Value: to.StringPtr("val")})
+	keyList = append(keyList, storage.AccountKey{KeyName: to.StringPtr(constant.ValidAccount), Value: to.StringPtr(base64.StdEncoding.EncodeToString([]byte{1, 2, 3, 4}))})
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
@@ -292,16 +292,16 @@ func TestCreateContainerSASURL(t *testing.T) {
 		testName    string
 		bucketID    string
 		params      *BucketAccessClassParameters
+		key         string
 		urlIsEmpty  bool
 		expectedID  string
 		expectedErr error
 	}{
 		{
-			testName: "Key is illegal base64 data",
-			bucketID: constant.ValidContainerURL,
-			params: &BucketAccessClassParameters{
-				key: "badkey",
-			},
+			testName:    "Key is illegal base64 data",
+			bucketID:    constant.ValidContainerURL,
+			params:      &BucketAccessClassParameters{},
+			key:         "badkey",
 			expectedID:  constant.ValidAccountURL,
 			expectedErr: fmt.Errorf("decode account key: %w", base64.CorruptInputError(4)),
 		},
@@ -313,13 +313,14 @@ func TestCreateContainerSASURL(t *testing.T) {
 				enableList:       true,
 				validationPeriod: 1,
 			},
+			key:         "",
 			expectedID:  constant.ValidAccountURL,
 			expectedErr: nil,
 		},
 	}
 
 	for _, test := range tests {
-		_, accountID, err := createContainerSASURL(context.Background(), test.bucketID, test.params)
+		_, accountID, err := createContainerSASURL(context.Background(), test.bucketID, test.params, test.key)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nexpected:\t%v\nactual: \t%v", test.testName, test.expectedErr, err)
 		}

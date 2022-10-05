@@ -10,3 +10,4 @@ driverName: blob.cosi.azure.com
 authenticationType: Key
 parameters: 
   bucketunittype: container
+  enablewrite: "true"
