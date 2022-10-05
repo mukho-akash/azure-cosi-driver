@@ -13,3 +13,4 @@ parameters:
   storageaccountname: cositestcon
   resourcegroup: cosi-test
   region: eastus
+  createStorageAccount: "true"
