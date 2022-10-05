@@ -298,10 +298,10 @@ func TestCreateContainerSASURL(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			testName: "Key is illegal base64 data",
-			bucketID: constant.ValidContainerURL,
-			params: &BucketAccessClassParameters{},
-			key: "badkey",
+			testName:    "Key is illegal base64 data",
+			bucketID:    constant.ValidContainerURL,
+			params:      &BucketAccessClassParameters{},
+			key:         "badkey",
 			expectedID:  constant.ValidAccountURL,
 			expectedErr: fmt.Errorf("decode account key: %w", base64.CorruptInputError(4)),
 		},
@@ -313,7 +313,7 @@ func TestCreateContainerSASURL(t *testing.T) {
 				enableList:       true,
 				validationPeriod: 1,
 			},
-			key: "",
+			key:         "",
 			expectedID:  constant.ValidAccountURL,
 			expectedErr: nil,
 		},
