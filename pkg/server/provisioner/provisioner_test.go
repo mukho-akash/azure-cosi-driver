@@ -157,7 +157,7 @@ func TestDriverDeleteBucket(t *testing.T) {
 				ResourceGroup: constant.ValidResourceGroup,
 				URL:           constant.ValidContainerURL,
 			},
-			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Invalid credentials with error : decode account key: illegal base64 data at input byte 0")),
+			expectedErr: fmt.Errorf("Error deleting container %s in storage account %s : %v", constant.ValidContainer, constant.ValidAccount, fmt.Errorf("Delete \"https://validaccount.blob.core.windows.net/validcontainer?restype=container\": dial tcp: lookup validaccount.blob.core.windows.net: no such host")),
 		},
 	}
 
