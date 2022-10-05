@@ -6,5 +6,5 @@ metadata:
 spec:
   bucketClaimName: cosi-driver-con
   bucketAccessClassName: cosi-sas-class-con
-  credentialsSecretName: bucketcreds1
+  credentialsSecretName: bucketcredscon
   protocol: azure
