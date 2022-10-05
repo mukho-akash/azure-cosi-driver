@@ -2,6 +2,7 @@ package azureutils
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"project/azure-cosi-driver/pkg/constant"
@@ -114,7 +115,7 @@ func TestDeleteBucket(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	cloud := azure.GetTestCloud(ctrl)
 	keyList := make([]storage.AccountKey, 0)
-	keyList = append(keyList, storage.AccountKey{KeyName: to.StringPtr(constant.ValidAccount), Value: to.StringPtr("val")})
+	keyList = append(keyList, storage.AccountKey{KeyName: to.StringPtr(constant.ValidAccount), Value: to.StringPtr(base64.StdEncoding.EncodeToString([]byte{1, 2, 3, 4}))})
 	cloud.StorageAccountClient = NewMockSAClient(context.Background(), ctrl, "", "", "", &keyList)
 
 	for _, test := range tests {
