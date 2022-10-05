@@ -10,7 +10,7 @@ import (
 	"project/azure-cosi-driver/pkg/constant"
 	"project/azure-cosi-driver/pkg/types"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
 	"github.com/Azure/go-autorest/autorest/to"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -59,9 +59,9 @@ type BucketAccessClassParameters struct {
 	storageAccountName               string
 	region                           string
 	signedversion                    string
-	signedIP                         azblob.IPRange
+	signedIP                         sas.IPRange
 	validationPeriod                 uint64
-	signedProtocol                   azblob.SASProtocol
+	signedProtocol                   sas.Protocol
 	enableList                       bool
 	enableRead                       bool
 	enableWrite                      bool
@@ -73,7 +73,6 @@ type BucketAccessClassParameters struct {
 	allowServiceSignedResourceType   bool
 	allowContainerSignedResourceType bool
 	allowObjectSignedResourceType    bool
-	key                              string
 }
 
 func CreateBucket(ctx context.Context,
@@ -132,26 +131,34 @@ func DeleteBucket(ctx context.Context,
 }
 
 // creates bucketSASURL and returns (SASURL, accountID, err)
-func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[string]string) (string, string, error) {
+func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[string]string, cloud *azure.Cloud) (string, string, error) {
 	bucketAccessClassParams, err := parseBucketAccessClassParameters(parameters)
 	if err != nil {
 		return "", "", err
 	}
 
-	klog.Info()
 	id, err := types.DecodeToBucketID(bucketID)
 	if err != nil {
 		return "", "", err
 	}
 	url := id.URL
 
+	storageAccountName := getStorageAccountNameFromContainerURL(url)
+	subsId := id.SubID
+	resourceGroup := id.ResourceGroup
+
+	key, err := cloud.GetStorageAccesskey(ctx, subsId, storageAccountName, resourceGroup)
+	if err != nil {
+		return "", "", err
+	}
+
 	switch bucketAccessClassParams.bucketUnitType {
 	case constant.Container:
 		klog.Info("Creating a Container SAS")
-		return createContainerSASURL(ctx, url, bucketAccessClassParams)
+		return createContainerSASURL(ctx, url, bucketAccessClassParams, key)
 	case constant.StorageAccount:
 		klog.Info("Creating an Account SAS")
-		return createAccountSASURL(ctx, url, bucketAccessClassParams)
+		return createAccountSASURL(ctx, url, bucketAccessClassParams, key)
 	}
 	return "", "", status.Error(codes.InvalidArgument, "invalid bucket type")
 }
@@ -318,7 +325,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 	// validation period default = one week
 	BACParams := &BucketAccessClassParameters{
 		validationPeriod:                 604800000,
-		signedProtocol:                   azblob.SASProtocolHTTPS,
+		signedProtocol:                   sas.ProtocolHTTPSandHTTP,
 		enableRead:                       true,
 		enableList:                       true,
 		allowServiceSignedResourceType:   true,
@@ -347,8 +354,10 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 			BACParams.signedversion = v
 		case constant.SignedProtocolField:
 			switch v {
-			case string(azblob.SASProtocolHTTPS):
-				BACParams.signedProtocol = azblob.SASProtocolHTTPS
+			case string(sas.ProtocolHTTPS):
+				BACParams.signedProtocol = sas.ProtocolHTTPS
+			case string(sas.ProtocolHTTPSandHTTP):
+				BACParams.signedProtocol = sas.ProtocolHTTPSandHTTP
 			}
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid SAS Protocol %s", v))
 		case constant.SignedIPField:
@@ -359,7 +368,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 				if start == nil {
 					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no range will be set", iplist[0]))
 				}
-				BACParams.signedIP = azblob.IPRange{Start: start}
+				BACParams.signedIP = sas.IPRange{Start: start}
 			case 2:
 				start := net.ParseIP(iplist[0])
 				end := net.ParseIP(iplist[1])
@@ -369,7 +378,7 @@ func parseBucketAccessClassParameters(parameters map[string]string) (*BucketAcce
 				if end == nil {
 					klog.Warning(fmt.Sprintf("IP %s is an invalid ip, no end to the range will be set", iplist[0]))
 				}
-				BACParams.signedIP = azblob.IPRange{Start: start, End: end}
+				BACParams.signedIP = sas.IPRange{Start: start, End: end}
 			}
 			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("Invalid IP Range %s, Must be formatted as <ip> or <ip1>-<ip2>", v))
 		case constant.ValidationPeriodField:

@@ -18,7 +18,6 @@ const (
 	AllowServiceSignedResourceTypeField   = "allowservicesignedresourcetypefield"
 	AllowContainerSignedResourceTypeField = "allowcontainersignedresourcetypefield"
 	AllowObjectSignedResourceTypeField    = "allowobjectsignedresourcetypefield"
-	KeyField                              = "key"
 	CredentialType                        = "azure"
 	AccessToken                           = "accessToken"
 )

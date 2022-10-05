@@ -168,6 +168,7 @@ func TestCreateAccountSASURL(t *testing.T) {
 		testName    string
 		bucketID    string
 		params      *BucketAccessClassParameters
+		key         string
 		urlIsEmpty  bool
 		expectedID  string
 		expectedErr error
@@ -175,9 +176,8 @@ func TestCreateAccountSASURL(t *testing.T) {
 		{
 			testName: "Key is illegal base64 data",
 			bucketID: constant.ValidAccountURL,
-			params: &BucketAccessClassParameters{
-				key: "badkey",
-			},
+			params: &BucketAccessClassParameters{},
+			key: "badkey",
 			expectedID:  constant.ValidAccountURL,
 			expectedErr: fmt.Errorf("decode account key: %w", base64.CorruptInputError(4)),
 		},
@@ -185,6 +185,7 @@ func TestCreateAccountSASURL(t *testing.T) {
 			testName:    "Missing permissions, expiry, etc.",
 			bucketID:    constant.ValidAccountURL,
 			params:      &BucketAccessClassParameters{},
+			key:         "",
 			expectedID:  constant.ValidAccountURL,
 			expectedErr: fmt.Errorf("account SAS is missing at least one of these: ExpiryTime, Permissions, Service, or ResourceType"),
 		},
@@ -199,13 +200,14 @@ func TestCreateAccountSASURL(t *testing.T) {
 				enableList:                       true,
 				validationPeriod:                 1,
 			},
+			key: "",
 			expectedID:  constant.ValidAccountURL,
 			expectedErr: nil,
 		},
 	}
 
 	for _, test := range tests {
-		_, bucketID, err := createAccountSASURL(context.Background(), test.bucketID, test.params)
+		_, bucketID, err := createAccountSASURL(context.Background(), test.bucketID, test.params, test.key)
 		if !reflect.DeepEqual(err, test.expectedErr) {
 			t.Errorf("\nTestCase: %s\nexpected:\t%v\nactual: \t%v", test.testName, test.expectedErr, err)
 		}
