@@ -110,6 +110,6 @@ func createAccountSASURL(ctx context.Context, bucketID string, parameters *Bucke
 		return "", "", err
 	}
 	queryParams := sasQueryParams.Encode()
-	sasURL := fmt.Sprintf("%s/%s", bucketID, queryParams)
+	sasURL := fmt.Sprintf("%s/?%s", bucketID, queryParams)
 	return sasURL, bucketID, nil
 }

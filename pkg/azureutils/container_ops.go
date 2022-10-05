@@ -229,7 +229,7 @@ func createContainerSASURL(ctx context.Context, bucketID string, parameters *Buc
 	}
 
 	queryParams := sasQueryParams.Encode()
-	sasURL := fmt.Sprintf("%s/%s", bucketID, queryParams)
+	sasURL := fmt.Sprintf("%s?%s", bucketID, queryParams)
 	accountID := fmt.Sprintf("https://%s.blob.core.windows.net/", getStorageAccountNameFromContainerURL(bucketID))
 	return sasURL, accountID, nil
 }
