@@ -197,7 +197,7 @@ func createAzureContainer(
 
 func createContainerSASURL(ctx context.Context, bucketID string, parameters *BucketAccessClassParameters, accountKey string) (string, string, error) {
 	account := getStorageAccountNameFromContainerURL(bucketID)
-	cred, err := azblob.NewSharedKeyCredential(account, accountKey)
+	cred, err := container.NewSharedKeyCredential(account, accountKey)
 	if err != nil {
 		return "", "", err
 	}

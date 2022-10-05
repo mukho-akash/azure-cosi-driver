@@ -144,10 +144,10 @@ func CreateBucketSASURL(ctx context.Context, bucketID string, parameters map[str
 	url := id.URL
 
 	storageAccountName := getStorageAccountNameFromContainerURL(url)
-	subsId := id.SubID
+	subsID := id.SubID
 	resourceGroup := id.ResourceGroup
 
-	key, err := cloud.GetStorageAccesskey(ctx, subsId, storageAccountName, resourceGroup)
+	key, err := cloud.GetStorageAccesskey(ctx, subsID, storageAccountName, resourceGroup)
 	if err != nil {
 		return "", "", err
 	}
